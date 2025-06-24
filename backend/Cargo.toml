@@ -1,0 +1,26 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+uuid = { version = "1", features = [
+    "v4",
+] } # 用于生成全局唯一 ID（如用户 ID、文章 ID）；axum = "0.8" 
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dotenvy = "0.15" # 用于从 .env 文件中加载环境变量（如数据库地址、密钥等）
+chrono = { version = "0.4", features = ["serde"] } # 时间日期处理库
+jsonwebtoken = "9" # JWT 编码与验证 ， 登录认证，权限控制
+argon2 = "0.5" # 密码哈希算法
+sea-orm = { version = "1", features = [
+    "sqlx-sqlite",
+    "runtime-tokio-native-tls",
+] } #异步 ORM 框架 , 用于数据库操作（增删改查）；
+tower = "0.5" # 基础异步中间件框架 ，提供服务抽象（Service trait）
+tower-http = { version = "0.6", features = [
+    "fs",
+    "trace",
+    "cors",
+] } # HTTP 中间件集合 HTTP 中间件集合
