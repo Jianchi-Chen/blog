@@ -5,6 +5,8 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 import router from "./router";
 
+
+
 // msw
 if (import.meta.env.DEV) {
   const { worker } = await import("./mocks/browser.ts");

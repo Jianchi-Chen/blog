@@ -1,9 +1,10 @@
 import { useUserStore } from "@/stores/user";
 import axios from "axios";
 
+// 所有 API 请求都会自动继承这些统一配置, 便于维护
 const client = axios.create({
-  baseURL: "http://localhost:5173/", // 后端地址
-  timeout: 5000,
+  baseURL: "http://localhost:5173/", // 全局base后端地址
+  timeout: 5000, // 请求5s超时
 });
 
 // 为这个 client 添加了一个 请求拦截器（request interceptor）
