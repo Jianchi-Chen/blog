@@ -26,7 +26,14 @@ export const useUserStore = defineStore("user", {
       this.token = localStorage.getItem("token") || "";
       this.username = localStorage.getItem("username") || "";
     },
+
+    // 判断当前用户是否是管理员
+    // TODO 可能存在问题
+    isAdmin() {
+      if (this.username == "admin") {
+        return true;
+      }
+      return false;
+    },
   },
 });
-
-
