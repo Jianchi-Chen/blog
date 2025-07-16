@@ -4,16 +4,19 @@ import NavBar from './components/NavBar.vue';
 </script>
 
 <template>
-
-
-
-  <div class="min-h-screen flex flex-col">
+  <div class="min-h-screen min-w-screen bg-gradient-to-br from-blue-100 via-white to-purple-100">
     <!-- <NavBar /> 是顶级组件，它会一直显示在页面上，无论用户访问哪个路径。-->
-    <NavBar />
-    <!-- <router-view /> 是vue-router 提供的占位组件，表示“当前路由匹配到的页面组件”应该渲染在这里。-->
-    <router-view />
+
+    <!-- 整个 Naive UI 的全局配置上下文，例如主题、语言、图标等 -->
+    <n-config-provider>
+      <!-- 所有页面组件都能访问 useMessage() 提供的 API -->
+      <n-message-provider>
+        <NavBar />
+
+        <!-- <router-view /> 是vue-router 提供的占位组件，表示“当前路由匹配到的页面组件”应该渲染在这里。-->
+        <router-view />
+      </n-message-provider>
+    </n-config-provider>
   </div>
-
-
 
 </template>

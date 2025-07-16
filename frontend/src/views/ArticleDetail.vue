@@ -1,4 +1,5 @@
 <template>
+
     <div class="max-w-3xl mx-auto p-6">
         <div v-if="loading" class="text-gray-500">加载中</div>
         <div v-else-if="error" class="text-red-500">{{ error }}</div>
@@ -11,18 +12,7 @@
     </div>
 
 
-    <!-- 测试prose渲染 -->
-    <div class="prose mx-auto p-6">
-        <h1>这是一级标题</h1>
-        <p>这是一个正文段落，应该有良好的行距和适当的边距。</p>
-        <h2>这是二级标题</h2>
-        <ul>
-            <li>第一个列表项</li>
-            <li>第二个列表项</li>
-        </ul>
-        <blockquote>这是一段引用，应该自动带边框和内缩样式。</blockquote>
-        <pre><code>console.log("这是代码块")</code></pre>
-    </div>
+
 
 
 
