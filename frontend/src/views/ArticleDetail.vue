@@ -1,5 +1,4 @@
 <template>
-
     <div class="max-w-3xl mx-auto p-6">
         <div v-if="loading" class="text-gray-500">加载中</div>
         <div v-else-if="error" class="text-red-500">{{ error }}</div>
@@ -10,12 +9,6 @@
             <div class="prose">{{ article.content }}</div>
         </div>
     </div>
-
-
-
-
-
-
 </template>
 
 <script setup lang="ts">

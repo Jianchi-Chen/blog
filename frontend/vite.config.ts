@@ -13,7 +13,7 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     tailwindcss(),
-
+    
     // 弃用, 自动导入会导致vscode无法给出提示
     // unplugin-vue-components, 常与下文中的auto-import配合使用
     // Components({ resolvers: [NaiveUiResolver()] }),

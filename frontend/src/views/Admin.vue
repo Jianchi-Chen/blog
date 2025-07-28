@@ -4,24 +4,28 @@
 </template>
 
 <script setup lang="ts">
-import { NDataTable, NButton } from 'naive-ui';
+import { NDataTable, NButton, useDialog, useMessage } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui'
-import { fetchArticleById, fetchArticles } from '@/api/article';
+import { fetchArticleById, fetchArticles, toggleStatus } from '@/api/article';
 import { useUserStore } from '@/stores/user';
 import { h, onMounted, ref, render } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import axios from '@/api/client';
+import StatusTag from '@/components/StatusTag.vue';
+import ArticleAction from '@/components/ArticleAction.vue';
+import type { Article } from '@/types/article';
+import type { EnumType } from 'typescript';
+
 
 const loading = ref(true);
-const articles = ref<any[]>([]);
+
 const router = useRouter();
 const userStore = useUserStore();
+const dialog = useDialog();
+const message = useMessage();
 
-const columns = [
-    {
-        title: 'ID',
-        key: 'id',
-    },
+// 表格列
+const columns = ref([
     {
         title: '标题',
         key: 'title',
@@ -33,48 +37,27 @@ const columns = [
     {
         title: '状态',
         key: 'status',
-        render(row: { status: string; }) {
-            return row.status === 'published' ? '已发布' : '草稿'
+        render(row: { status: any; }) {
+            // h函数创建一个虚拟DOM节点
+            return h(StatusTag, { status: row.status })
         }
     },
     {
         title: '操作',
         key: 'actions',
-        render(row: { id: string | number; }) {
+        render(row: { id: any; status: any; }) {
             return h(
-                'div',
-                [
-                    // 手动创建虚拟 DOM 元素
-                    h(
-                        NButton,
-                        {
-                            strong: true,
-                            tertiary: true,
-                            size: 'small',
-                            onClick: () => handleEdit(row.id)
-                        },
-                        { default: () => '编辑' }
-                    ),
-                    ' | ',
-                    h(
-                        NButton,
-                        {
-                            strong: true,
-                            tertiary: true,
-                            size: 'small',
-                            onClick: () => handleDelete(row.id)
-                        },
-                        { default: () => '删除' }
-                    ),
-                ]
+                ArticleAction, { id: row.id, status: row.status, onEdit: handleEdit, onToggleStatus: handleToggleStatus, onDelete: handleDelete }
             )
         }
     },
-]
+]);
+
+
 
 // 页码
 const pagination = {
-    pageSize: 5
+    pageSize: 50
 }
 
 // 页面加载时检查用户权限并加载文章
@@ -86,19 +69,13 @@ onMounted(() => {
     loadArticles();
 })
 
-// 使用到的数据结构
-interface articleDataModel {
-    id: number,
-    title: string,
-    created_at: string,
-    status: string,
-}
-const data = ref<articleDataModel[]>([]);
+// 表格数据
+const data = ref<Article[]>([]);
 const loadArticles = async () => {
 
-    const res = await fetchArticles();
+    const res = await fetchArticles("admin");
     // axios库会把数据封装在res.data里
-    data.value = res.data.map((item: articleDataModel) => ({
+    data.value = res.data.map((item: Article) => ({
         id: item.id,
         title: item.title,
         created_at: item.created_at,
@@ -120,9 +97,28 @@ const handleEdit = (id: number | string) => {
 
 // 删除文章
 const handleDelete = async (id: number | string) => {
-    await axios.post('/articleDelete', id)
-    await fetchArticles();
+    dialog.warning({
+        title: '确认删除?',
+        content: '此操作将永久删除该文章，是否继续?',
+        positiveText: '确定',
+        negativeText: '取消',
+        onPositiveClick: async () => {
+            // 模拟删除接口
+            await axios.delete(`/article/${id}`)
+            message.success('已删除')
+        }
+    })
+}
 
+// 转换文章状态
+const handleToggleStatus = async (id: number, toggle: string) => {
+    await toggleStatus(id, toggle)
+    const index = data.value.findIndex((a) => a.id == id)
+    if (index !== -1 && data.value[index].status !== toggle) {
+        // 索引访问类型（indexed access type） 的写法，读作“把 Article 这个类型里名叫 status 的属性的类型拿出来”。
+        data.value[index].status = (toggle) as Article["status"];
+        console.log(data.value[index].status);
+    }
 }
 
 

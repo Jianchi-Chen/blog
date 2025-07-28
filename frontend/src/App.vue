@@ -9,13 +9,16 @@ import NavBar from './components/NavBar.vue';
 
     <!-- 整个 Naive UI 的全局配置上下文，例如主题、语言、图标等 -->
     <n-config-provider>
-      <!-- 所有页面组件都能访问 useMessage() 提供的 API -->
-      <n-message-provider>
-        <NavBar />
+      <!-- 对话框使用 -->
+      <n-dialog-provider>
+        <!-- 所有页面组件都能访问 useMessage() 提供的 API -->
+        <n-message-provider>
+          <NavBar />
 
-        <!-- <router-view /> 是vue-router 提供的占位组件，表示“当前路由匹配到的页面组件”应该渲染在这里。-->
-        <router-view />
-      </n-message-provider>
+          <!-- <router-view /> 是vue-router 提供的占位组件，表示“当前路由匹配到的页面组件”应该渲染在这里。-->
+          <router-view />
+        </n-message-provider>
+      </n-dialog-provider>
     </n-config-provider>
   </div>
 

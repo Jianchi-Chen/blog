@@ -31,6 +31,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
       component: () => import("@/views/AdminCreate.vue"),
     },
+    {
+      path: "/admin/edit/:id",
+      name: "AdminEdit",
+      meta: { requiresAuth: true },
+      component: () => import("@/views/AdminEdit.vue"),
+    },
   ],
 });
 
