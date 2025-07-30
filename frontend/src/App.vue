@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import NavBar from './components/NavBar.vue';
+import { darkTheme, lightTheme, NConfigProvider } from 'naive-ui'
+import type { GlobalThemeOverrides, GlobalTheme } from 'naive-ui';
+
 </script>
 
 <template>
-  <div class="min-h-screen min-w-screen bg-gradient-to-br from-blue-100 via-white to-purple-100">
+  <div class="bg-[#fdfdfd] text-[#1a1a1a] min-h-screen min-w-screen">
     <!-- <NavBar /> 是顶级组件，它会一直显示在页面上，无论用户访问哪个路径。-->
 
     <!-- 整个 Naive UI 的全局配置上下文，例如主题、语言、图标等 -->

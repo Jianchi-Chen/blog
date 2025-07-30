@@ -48,7 +48,7 @@ export const handlers = [
   // 获取文章详情, 使用动态路由
   http.get("/article/:id", ({ params }) => {
     const { id } = params; // 解构 id
-    const find_article = articles.value.find((a) => a.id == id);
+    const find_article = articles.value.find((a) => a.id === id);
     if (!find_article) {
       return HttpResponse.json({
         error: "文章不存在",
@@ -58,17 +58,17 @@ export const handlers = [
     return HttpResponse.json(find_article);
   }),
 
-  // 新建文章
+  // (新建)发布文章
   http.post("/article", async ({ request }) => {
     const json = await request.json(); // 未经验证的生肉
     const result = ArticleSchema.safeParse(json); // 验证，需要数据结构的值而非类型
     if (!result.success) {
+      console.log(result.error.issues); // 查看未通过的具体属性
       return HttpResponse.json(
-        { error: "title and content can't empty" },
+        { error: "title , content and summary can't empty" },
         { status: 400 }
       );
     }
-
     // 格式化时间
     const newArticle = {
       id: uuidv7(), // uuid生成唯一且有序的id
@@ -81,7 +81,7 @@ export const handlers = [
     );
     newArticle.created_at = formattedTime;
 
-    // 简介
+    // 添加默认简介
     if (!newArticle.summary) {
       newArticle.summary = result.data.title;
     }
@@ -92,14 +92,19 @@ export const handlers = [
 
   // 删除文章
   http.delete("/article/:id", async ({ params }) => {
-    const id = Number(params.id);
-    articles.value = articles.value.filter((article) => article.id !== id);
-    return HttpResponse.json({ message: "删除成功" });
+    const id = params.id as Article["id"];
+    const index = articles.value.findIndex((a) => a.id === id);
+    // console.log(index);
+    if (index !== -1) {
+      articles.value = articles.value.filter((article) => article.id !== id);
+      return HttpResponse.json({ message: "删除成功" });
+    }
+    return HttpResponse.json({ message: "删除失败" });
   }),
 
   // 修改文章
   http.put("/article/:id", async ({ request, params }) => {
-    const id = Number(params.id);
+    const id = params.id as Article["id"];
     const res = (await request.json()) as Article;
     const index = articles.value.findIndex((a) => a.id === id);
 
@@ -112,10 +117,10 @@ export const handlers = [
 
   // 更变文章状态
   http.patch("/article/:id", async ({ request, params }) => {
-    const id = Number(params.id);
+    const id = params.id as Article["id"];
     // 类型断言
     const data = (await request.json()) as { toggle?: string };
-    const toggle = data.toggle;
+    const toggle = data.toggle as Article["status"];
 
     const index = articles.value.findIndex((a) => a.id == id);
 
@@ -128,26 +133,29 @@ export const handlers = [
 ];
 
 // 模拟数据库，只存于内存中
-let articles = ref<any[]>([
+let articles = ref<Article[]>([
   {
-    id: 1,
+    id: "1",
     title: "Vue 3 从入门到实战",
     summary: "学习 Vue 3 的最佳实践",
     status: "published",
     created_at: "2024-06-01",
+    content: "最喜欢vue3了",
   },
   {
-    id: 2,
+    id: "2",
     title: "深入理解 Pinia",
     summary: "下一代状态管理工具",
     status: "published",
     created_at: "2024-06-10",
+    content: "最喜欢Pinia了",
   },
   {
-    id: 3,
+    id: "3",
     title: "Tailwind CSS 快速指南",
     summary: "从零上手到精通",
     status: "draft",
     created_at: "2024-06-15",
+    content: "最喜欢Tailwind了",
   },
 ]);

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { NDataTable, NButton, useDialog, useMessage } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui'
-import { fetchArticleById, fetchArticles, toggleStatus } from '@/api/article';
+import { deleteArticle, fetchArticleById, fetchArticles, toggleStatus } from '@/api/article';
 import { useUserStore } from '@/stores/user';
 import { h, onMounted, ref, render } from 'vue';
 import { useRouter } from 'vue-router';
@@ -91,12 +91,12 @@ const handleAdd = () => {
 }
 
 // 编辑文章
-const handleEdit = (id: number | string) => {
+const handleEdit = (id: Article["id"]) => {
     router.push(`/admin/edit/${id}`);
 }
 
 // 删除文章
-const handleDelete = async (id: number | string) => {
+const handleDelete = async (id: Article["id"]) => {
     dialog.warning({
         title: '确认删除?',
         content: '此操作将永久删除该文章，是否继续?',
@@ -104,14 +104,22 @@ const handleDelete = async (id: number | string) => {
         negativeText: '取消',
         onPositiveClick: async () => {
             // 模拟删除接口
-            await axios.delete(`/article/${id}`)
-            message.success('已删除')
+            const res = await deleteArticle(id)
+            if (res && res.data.message == "删除成功") {
+                message.success("Delete succeeded");
+            } else if (res && res.data.message == "删除失败") {
+                message.error("Delete failed");
+            } else {
+                message.warning("operation failed");
+            }
+            // 删除后再次拉取数据
+            await loadArticles()
         }
     })
 }
 
 // 转换文章状态
-const handleToggleStatus = async (id: number, toggle: string) => {
+const handleToggleStatus = async (id: Article["id"], toggle: string) => {
     await toggleStatus(id, toggle)
     const index = data.value.findIndex((a) => a.id == id)
     if (index !== -1 && data.value[index].status !== toggle) {
