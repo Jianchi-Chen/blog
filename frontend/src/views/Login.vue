@@ -12,22 +12,26 @@
                         <n-input v-model:value="form.password" placeholder="请输入密码" />
                     </n-form-item>
 
-
                     <n-form-item>
-                        <n-button type="primary" @click="handleLogin" :loading="loading">登录</n-button>
+                        <n-flex justify="center" size="large">
+                            <n-button type="primary" @click="handleLogin" :loading="loading">登录</n-button>
+                            <n-button type="primary" @click="handleRegister" :loading="loading">注册</n-button>
+                        </n-flex>
                     </n-form-item>
                 </n-form>
             </div>
+
         </n-layout-content>
     </n-layout>
 </template>
 
 <script setup lang="ts">
-import { NForm, NFormItem, NInput, NButton, useMessage, NLayout, NLayoutContent } from 'naive-ui';
+import { NForm, NFormItem, NInput, NButton, useMessage, NLayout, NLayoutContent, NFlex } from 'naive-ui';
 import { useUserStore } from '@/stores/user';
 import axios from 'axios';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { registerAccount } from '@/api/account';
 
 
 // 状态
@@ -70,6 +74,9 @@ const handleLogin = async () => {
         const response = await axios.post('/login', {
             ...form.value,
         })
+        if (response.data.message == 'failed') {
+            throw new Error('未注册用户')
+        }
         console.log('[请求拦截]', response.data.url);
 
         // 模拟返回：{ token: "xxx", username: "admin" }
@@ -80,10 +87,38 @@ const handleLogin = async () => {
         message.success('登录成功')
         router.push('/');
     } catch (err) {
-        message.error('登录失败')
+        // 类型守卫
+        if (err instanceof Error) {
+            message.error(`${err}`)
+        }
     } finally {
         loading.value = false;
     }
 }
+
+//注册用户
+const handleRegister = async () => {
+    loading.value = true;
+    try {
+        // .validate()验证表单
+        await formRef.value?.validate()
+        const res = await registerAccount({ ...form.value })
+        if (res.data.message == 'failed') {
+            throw new Error('注册失败')
+        }
+        message.success('注册成功,即将登录... go to Home')
+        // console.log('[请求拦截]', res.data.url);
+        const { token, username: name } = res.data;
+        userStore.login(token, name);
+        router.push('/');
+    } catch (err) {
+        console.error(err)
+        message.error("注册失败")
+    } finally {
+        loading.value = false;
+    }
+}
+
+
 
 </script>

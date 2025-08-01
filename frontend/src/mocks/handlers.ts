@@ -7,22 +7,27 @@ import type { StringMappingType } from "typescript";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { uuidv7 } from "uuidv7";
-import z, { number } from "zod";
+import z, { number, record, uuid } from "zod";
 import { format } from "date-fns"; // 格式化展示
+import type { User } from "@/types/user";
+import type { Comment } from "@/types/comment";
+import { useUserStore } from "@/stores/user";
 
 export const handlers = [
   // /login 登录
   http.post("/login", async ({ request }) => {
     // 解包请求内容, 动态响应传入的用户名字符串
-    const body = (await request.json()) as {
-      username: string;
-      password: string;
-    };
-    const { username } = body;
+    const res = (await request.json()) as User;
+    const exsitingAccount = users.value.find((e) => e.username == res.username);
+    if (!exsitingAccount) {
+      return HttpResponse.json({
+        message: "failed",
+      });
+    }
 
     return HttpResponse.json({
       token: "mock-jwt-token",
-      username,
+      username: res.username,
     });
   }),
 
@@ -73,12 +78,11 @@ export const handlers = [
     const newArticle = {
       id: uuidv7(), // uuid生成唯一且有序的id
       ...result.data,
-      created_at: result.data.created_at ?? new Date().toISOString(), // nullish表达式，如果是空值就给一个时间
+      created_at:
+        result.data.created_at ??
+        format(new Date().toISOString(), "yyyy-MM-dd HH:mm"), // nullish表达式，如果是空值就给一个时间
     };
-    const formattedTime = format(
-      new Date(newArticle.created_at),
-      "yyyy-MM-dd HH:mm"
-    );
+    const formattedTime = format(new Date().toISOString(), "yyyy-MM-dd HH:mm");
     newArticle.created_at = formattedTime;
 
     // 添加默认简介
@@ -130,6 +134,55 @@ export const handlers = [
 
     return HttpResponse.json(articles.value[index]);
   }),
+
+  // 注册账户
+  http.post("/registerAccount", async ({ request }) => {
+    const res = (await request.json()) as User;
+    const existingAccount = users.value.find((e) => e.username == res.username);
+    if (existingAccount) {
+      return HttpResponse.json({ message: "failed" });
+    }
+    res.id = uuidv7();
+    users.value.push({ ...res });
+    return HttpResponse.json({
+      token: "mock-jwt-token",
+      username: res.username,
+    });
+  }),
+
+  // 获取评论
+  http.get("/comments/:articleId", ({ params }) => {
+    const id = params.articleId as string;
+    return HttpResponse.json(comments[id] || []);
+  }),
+
+  // 发表评论
+  http.post("/comment", async ({ request }) => {
+    const res = (await request.json()) as {
+      user: string;
+      content: string;
+      articleId: string;
+    }; //断言成对象
+    console.log(res.articleId);
+    // const index = articles.value.findIndex((c) => c.id == res.articleId);
+    // console.log(index);
+    const newComment = {
+      id: uuidv7(),
+      user: res.user,
+      content: res.content,
+      created_at: format(new Date().toISOString(), "yyyy-MM-dd HH:mm"),
+    };
+    // 文章不存在就return,评论区存在就unshift,不存在就新建一个数组
+    if (articles.value.findIndex((c) => c.id == res.articleId) == -1) {
+      console.log("article isn't existed");
+      return HttpResponse.json({ error: "文章不存在" }, { status: 404 });
+    } else if (comments[res.articleId]) {
+      comments[res.articleId].unshift(newComment);
+    } else {
+      comments[res.articleId] = [newComment];
+    }
+    return HttpResponse.json(newComment);
+  }),
 ];
 
 // 模拟数据库，只存于内存中
@@ -159,3 +212,40 @@ let articles = ref<Article[]>([
     content: "最喜欢Tailwind了",
   },
 ]);
+
+// 用户数据库
+const users = ref<User[]>([
+  {
+    username: "123",
+    identity: "owner",
+    password: "123",
+    id: "1",
+    token: "",
+  },
+  {
+    username: "u",
+    identity: "user",
+    password: "123",
+    id: "2",
+    token: "",
+  },
+  {
+    username: "v",
+    password: "123",
+    identity: "vistor",
+    id: "3",
+    token: "",
+  },
+]);
+
+// 评论数据库
+const comments: Record<string, Comment[]> = {
+  "1": [
+    {
+      id: "1",
+      user: "123",
+      content: "123 comment",
+      created_at: "2024-06-10",
+    },
+  ],
+};

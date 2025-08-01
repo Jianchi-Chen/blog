@@ -1,30 +1,37 @@
 <template>
-    <div class="max-w-4xl mx-auto p-6">
-        <h1 class="text-3xl font-bold mb-6 text-green-600">文章列表</h1>
-        <div v-if="loading" class="text-gray-500">加载中</div>
-
+    <n-flex vertical size="medium">
         <!-- naive-ui实现 -->
-        <n-flex vertical size="large">
-            <n-card v-for="article in articles" :key="article.id" :hoverable="true" :embedded="true"
-                @click="goToDetail(article.id)" class="cursor-pointer">
-                <template #header>
-                    <h2 class="text-xl font-semibold text-blue-600">{{ article.title }}</h2>
-                </template>
+        <n-h1 prefix="bar">
+            <n-text type="success">
+                文章列表
+            </n-text>
+        </n-h1>
+        <n-h2 v-if="loading">加载中</n-h2>
 
-                <p class="text-sm text-gray-500 mb-2">发布时间: {{ article.created_at }}</p>
-                <p class="text-gray-700">{{ article.summary }}</p>
-            </n-card>
-        </n-flex>
-    </div>
+        <n-card v-for="article in articles" :key="article.id" :hoverable="true" :embedded="true"
+            @click="goToDetail(article.id)" class="cursor-pointer">
+            <n-h2>
+                <n-text type="info">
+                    {{ article.title }}
+                </n-text>
+            </n-h2>
+
+            <n-text depth="3">发布时间: {{ article.created_at }}</n-text>
+            <n-p>{{ article.summary }}</n-p>
+        </n-card>
+    </n-flex>
+
+
 
 
 </template>
 
 <script setup lang="ts">
-import { NCard, NFlex, useMessage } from 'naive-ui';
+import { NCard, NFlex, useMessage, NH1, NText, NH2, NP, NLayout } from 'naive-ui';
 import { fetchArticleById, fetchArticles } from '@/api/article';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/user';
 
 // 文章列表
 const router = useRouter();
@@ -36,7 +43,7 @@ const message = useMessage();
 const loadArticles = async () => {
     loading.value = true;
     try {
-        const res = await fetchArticles();
+        const res = await fetchArticles("vistor");
         articles.value = res.data
     } catch (err) {
         message.error('无法加载文章, 请刷新', {

@@ -84,8 +84,8 @@ watch(
 const handleSubmit = async () => {
     try {
         // naive ui 自带的表单校验
-        await formRef.value?.validate()  //!  -1
-        console.log("       await formRef.value?.validate()  //!  -1")
+        await formRef.value?.validate()
+        console.log("await formRef.value?.validate()  //!  -1")
         loading.value = true;
 
         if (props.isEdit && props.articleId) {
