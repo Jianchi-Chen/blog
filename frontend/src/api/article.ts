@@ -6,9 +6,9 @@ import { setup } from "naive-ui/es/radio/src/use-radio";
 // 封装api函数返回promis，故前端调用时使用async/await即可
 
 // 获取文章列表
-export const fetchArticles = (identity: string) => {
+export const fetchArticles = (identity: string, condition: string) => {
   // GET请求中，第二个参数需要写在params里，params 是专门用来指定 URL 查询参数的字段，它的值必须是一个对象
-  return axios.get("/articles", { params: { identity } });
+  return axios.get("/articles", { params: { identity, condition } });
 };
 
 // 获取文章详情
@@ -46,4 +46,13 @@ export const deleteArticle = (id: Article["id"]) => {
 // 转换文章状态
 export const toggleStatus = (id: Article["id"], toggle: string) => {
   return axios.patch(`/article/${id}`, { toggle });
+};
+
+// 获取建议
+export const fetchSuggestions = (keyword: string) => {
+  return axios.get(`/suggestions/${keyword}`);
+};
+
+export const fetchArticleByConditions = (condition: string) => {
+  return axios.get(`/article/${condition}`);
 };

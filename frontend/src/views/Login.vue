@@ -1,32 +1,40 @@
 <template>
-    <!-- naive-ui实现 -->
-    <n-layout style="height: 100vh;">
-        <n-layout-content position="absolute" class="w-full h-full flex items-center justify-center bg-gray-50">
-            <div class="bg-white shadow-md rounded-lg p-8 w-full max-w-md">
-                <h1 class="text-2xl font-bold mb-6 text-center"> 登录后台</h1>
-                <n-form :model="form" :rules="rules" ref="formRef" label-placement="top">
-                    <n-form-item label="用户名" path="username">
-                        <n-input v-model:value="form.username" placeholder="请输入用户名" />
-                    </n-form-item>
-                    <n-form-item label="密码" path="password">
-                        <n-input v-model:value="form.password" placeholder="请输入密码" />
-                    </n-form-item>
+    <n-flex style="width:50vh">
+        <n-card>
+            <n-tabs default-value="signin" size="large" animated>
+                <n-tab-pane name="signin" tab="登录">
+                    <n-form :model="signinForm" :rules="signinRules" ref="signinRef">
+                        <n-form-item-row label="用户名" path="username">
+                            <n-input v-model:value="signinForm.username" placeholder="请输入用户名" />
+                        </n-form-item-row>
+                        <n-form-item-row label="密码" path="password">
+                            <n-input v-model:value="signinForm.password" placeholder="请输入密码" />
+                        </n-form-item-row>
+                    </n-form>
+                    <n-button type="primary" block secondary strong @click="handleLogin"> 登录 </n-button>
+                </n-tab-pane>
 
-                    <n-form-item>
-                        <n-flex justify="center" size="large">
-                            <n-button type="primary" @click="handleLogin" :loading="loading">登录</n-button>
-                            <n-button type="primary" @click="handleRegister" :loading="loading">注册</n-button>
-                        </n-flex>
-                    </n-form-item>
-                </n-form>
-            </div>
-
-        </n-layout-content>
-    </n-layout>
+                <n-tab-pane name="signup" tab="注册">
+                    <n-form :model="registerForm" :rules="registerRules" ref="registerRef">
+                        <n-form-item-row label="用户名" path="username">
+                            <n-input v-model:value="registerForm.username" placeholder="请输入用户名" />
+                        </n-form-item-row>
+                        <n-form-item-row label="密码" path="password">
+                            <n-input v-model:value="registerForm.password" placeholder="请输入用户名" />
+                        </n-form-item-row>
+                        <n-form-item-row label="重复密码" path="repassword">
+                            <n-input v-model:value="registerForm.repassword" placeholder="请输入用户名" />
+                        </n-form-item-row>
+                    </n-form>
+                    <n-button type="primary" block secondary strong @click="handleRegister"> 注册 </n-button>
+                </n-tab-pane>
+            </n-tabs>
+        </n-card>
+    </n-flex>
 </template>
 
 <script setup lang="ts">
-import { NForm, NFormItem, NInput, NButton, useMessage, NLayout, NLayoutContent, NFlex } from 'naive-ui';
+import { NForm, NFormItem, NInput, NButton, NFormItemRow, useMessage, NLayout, NLayoutContent, NFlex, NCard, NTabs, NTabPane } from 'naive-ui';
 import { useUserStore } from '@/stores/user';
 import axios from 'axios';
 import { onMounted, ref } from 'vue';
@@ -41,12 +49,12 @@ const loading = ref(false);
 const userStore = useUserStore();
 const router = useRouter();
 
-// Nform表单
-const form = ref({
+// 登录表单与验证逻辑
+const signinForm = ref({
     username: '',
     password: '',
 })
-const rules = {
+const signinRules = {
     username: {
         required: true,
         message: '请输入用户名',
@@ -58,9 +66,50 @@ const rules = {
         trigger: ['input', 'blur'],
     }
 }
-const message = useMessage();
-const formRef = ref();
 
+
+// 注册表单与验证逻辑
+const registerForm = ref({
+    username: '',
+    password: '',
+    repassword: '',
+})
+const registerRules = {
+    username: [{
+        required: true,
+        message: '请输入用户名',
+        trigger: ['input', 'blur'],
+    }, {
+        min: 2, max: 20, message: '长度 2-20', trigger: ['blur', 'input']
+    }],
+    password: [{
+        required: true,
+        message: '请输入密码',
+        trigger: ['input', 'blur'],
+    },
+    {
+        min: 6, max: 20, message: '长度 6-20', trigger: ['blur', 'input']
+    }],
+    repassword: [{
+        required: true,
+        message: '请确认密码',
+        trigger: ['input', 'blur'],
+    }, {
+        // 验证密码逻辑
+        validator: (rule: any, value: string) => {
+            return registerForm.value.password === value
+                ? true
+                : new Error('两次密码输入不一致')
+        },
+        message: '两次密码输入不一致',
+        trigger: 'blur'
+    }]
+}
+
+
+const message = useMessage();
+const signinRef = ref();
+const registerRef = ref();
 
 //登录函数
 const handleLogin = async () => {
@@ -68,11 +117,11 @@ const handleLogin = async () => {
 
     try {
         // .validate()验证表单
-        await formRef.value?.validate()
+        await signinRef.value?.validate()
 
         // 暂时使用模拟请求（你后续用真实 API 替换）
         const response = await axios.post('/login', {
-            ...form.value,
+            ...signinForm.value,
         })
         if (response.data.message == 'failed') {
             throw new Error('未注册用户')
@@ -101,8 +150,8 @@ const handleRegister = async () => {
     loading.value = true;
     try {
         // .validate()验证表单
-        await formRef.value?.validate()
-        const res = await registerAccount({ ...form.value })
+        await registerRef.value?.validate()
+        const res = await registerAccount({ ...registerForm.value })
         if (res.data.message == 'failed') {
             throw new Error('注册失败')
         }

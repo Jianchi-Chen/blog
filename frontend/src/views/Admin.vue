@@ -1,64 +1,131 @@
 <template>
-    <n-button type="primary" @click="handleAdd">新建文章</n-button>
-    <n-data-table :columns="columns" :data="data" :pagination="pagination" :bordered="true"></n-data-table>
+    <n-flex vertical :size="12">
+        <n-flex>
+            <n-button type="primary" @click="handleAdd">New Article</n-button>
+            <n-button @click="clearSorter">
+                Clear Sorter
+            </n-button>
+        </n-flex>
+        <n-data-table :columns="columnsRef" :data="data" :pagination="pagination" :bordered="true" ref="tableRef"
+            @update:sorter="handleSorterChange"></n-data-table>
+
+    </n-flex>
+
 </template>
 
 <script setup lang="ts">
 import { NDataTable, NButton, useDialog, useMessage } from 'naive-ui';
-import type { DataTableColumns } from 'naive-ui'
+import type { DataTableSortOrder, DataTableBaseColumn, DataTableColumns, DataTableSortState } from 'naive-ui'
 import { deleteArticle, fetchArticleById, fetchArticles, toggleStatus } from '@/api/article';
 import { useUserStore } from '@/stores/user';
-import { h, onMounted, ref, render } from 'vue';
+import { computed, h, onMounted, reactive, ref, render, watchEffect } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from '@/api/client';
 import StatusTag from '@/components/StatusTag.vue';
 import ArticleAction from '@/components/ArticleAction.vue';
 import type { Article } from '@/types/article';
 import type { EnumType } from 'typescript';
+import { array } from 'zod';
 
 
 const loading = ref(true);
-
 const router = useRouter();
 const userStore = useUserStore();
 const dialog = useDialog();
 const message = useMessage();
+const data = ref<Article[]>([]);
+const tableRef = ref();
 
-// 表格列
-const columns = ref([
-    {
-        title: '标题',
-        key: 'title',
-    },
-    {
-        title: '创建时间',
-        key: 'created_at',
-    },
-    {
-        title: '状态',
-        key: 'status',
-        render(row: { status: any; }) {
-            // h函数创建一个虚拟DOM节点
-            return h(StatusTag, { status: row.status })
-        }
-    },
-    {
-        title: '操作',
-        key: 'actions',
-        render(row: { id: any; status: any; }) {
-            return h(
-                ArticleAction, { id: row.id, status: row.status, onEdit: handleEdit, onToggleStatus: handleToggleStatus, onDelete: handleDelete }
-            )
-        }
-    },
-]);
+interface RowData {
+    id: string,
+    key: string,
+    title: string,
+    created_at: string,
+    status: Article["status"],
+    tags: string[]
+}
+// 收集所有tag，返回string[]
+const allTags = computed(() => {
+    const set = new Set<string>()
+    data.value.forEach(i => {
+        i.tags?.forEach(tag => {
+            set.add(tag)
+        })
+    })
+    return Array.from(set)
+})
+// 标签筛选
+const titleColumn: DataTableBaseColumn<RowData> = {
+    title: '标题',
+    key: 'title',
+    filterOptions: computed(() => {
+        return Array.from(allTags.value).map(tag => ({ label: tag, value: tag }))
+    }).value,
+    filter(value, row) {
+        return row.tags.includes(value as string)
+    }
+}
+const timeColumn: DataTableBaseColumn<RowData> = {
+    title: '创建时间',
+    key: 'created_at',
+    sortOrder: false,
+    sorter(rowA, rowB) {
+        console.log(timeColumn.sortOrder);
+        // new Date()返回毫秒数, getTime()方法获取number
+        return new Date(rowA.created_at).getTime() - new Date(rowB.created_at).getTime()
+    }
+}
 
+// 枚举映射表
+const statusOrder = {
+    draft: 1,
+    archived: 2,
+    published: 3,
+}
+const StatusColumn: DataTableBaseColumn<RowData> = {
+    title: 'Status',
+    key: 'status',
+    sortOrder: false,
+    render(row: { status: any; }) {
+        // h函数创建一个虚拟DOM节点
+        return h(StatusTag, { status: row.status })
+    },
+    sorter(rowA, rowB) {
+        console.log(StatusColumn.sortOrder); // -1
+        // 下标访问对应属性值
+        return statusOrder[rowA.status] - statusOrder[rowB.status]
+    }
+}
+const ActionColumn: DataTableBaseColumn<RowData> =
+{
+    title: '操作',
+    key: 'actions',
+    render(row: { id: any; status: any; }) {
+        return h(
+            ArticleAction, { id: row.id, status: row.status, onEdit: handleEdit, onToggleStatus: handleToggleStatus, onDelete: handleDelete }
+        )
+    }
+}
 
+console.log(timeColumn.sortOrder)
+console.log(StatusColumn.sortOrder)
+
+const timeColumnReactive = reactive(timeColumn)
+const StatusColumnReactive = reactive(StatusColumn)
+
+// 受控的排序，表格列
+const columns: DataTableBaseColumn<RowData>[] = [
+    titleColumn,
+    timeColumn,
+    StatusColumn,
+    ActionColumn,
+]
 
 // 页码
 const pagination = {
     pageSize: 50
 }
+const columnsRef = ref<DataTableBaseColumn<RowData>[]>(columns)
 
 // 页面加载时检查用户权限并加载文章
 onMounted(() => {
@@ -70,7 +137,6 @@ onMounted(() => {
 })
 
 // 表格数据
-const data = ref<Article[]>([]);
 const loadArticles = async () => {
 
     const res = await fetchArticles("admin");
@@ -80,9 +146,11 @@ const loadArticles = async () => {
         title: item.title,
         created_at: item.created_at,
         status: item.status,
+        tags: item.tags,
     }));
     console.log(data.value);
 }
+
 
 
 // 新建文章
@@ -129,5 +197,50 @@ const handleToggleStatus = async (id: Article["id"], toggle: string) => {
     }
 }
 
+// 处理排序
+const handleSorterChange = (sorter: DataTableSortState) => {
+    columnsRef.value.forEach((column: DataTableBaseColumn<RowData>) => {
+        /** column.sortOrder !== undefined means it is uncontrolled */
+        if (column.sortOrder === undefined)
+            return
+        if (!sorter) {
+            column.sortOrder = false
+            return
+        }
+        if (column.key === sorter.columnKey) {
+            column.sortOrder = sorter.order
+            // console.log(`${column.key}, ${sorter.columnKey}, ${column.sortOrder},${sorter.order}`);
+
+        }
+
+        else { column.sortOrder = false }
+    })
+}
+
+// 清空排序
+const clearSorter = async () => {
+    // 表格排序
+    // timeColumnReactive.sortOrder = false
+    // StatusColumnReactive.sortOrder = false
+    // // 标签筛选
+    // titleColumn.filterOptionValue = null
+
+    tableRef.value.filter(null)
+    tableRef.value.sort(null)
+    // await loadArticles()
+}
+
+// 非受控过滤数据表格, 初始化并更新tag
+watchEffect(() => {
+    const tagSet = new Set<string>()
+    data.value.forEach(row => {
+        row.tags?.forEach(tag => tagSet.add(tag))
+    })
+    titleColumn.filterOptions = Array.from(tagSet).map(tag => ({
+        // 箭头函数如果直接返回一个 对象字面量，必须用 圆括号 () 包裹起来。否则 JavaScript 会误以为你写的是函数体，而不是一个对象。
+        label: tag,
+        value: tag
+    }))
+})
 
 </script>

@@ -22,19 +22,19 @@ const router = createRouter({
     {
       path: "/admin",
       name: "Admin",
-      meta: { requiresLogin: true },
+      meta: { requiresAdmin: true },
       component: () => import("@/views/Admin.vue"),
     },
     {
       path: "/admin/create",
       name: "AdminCreate",
-      meta: { requiresAuth: true },
+      meta: { requiresAdmin: true },
       component: () => import("@/views/AdminCreate.vue"),
     },
     {
       path: "/admin/edit/:id",
       name: "AdminEdit",
-      meta: { requiresAuth: true },
+      meta: { requiresAdmin: true },
       component: () => import("@/views/AdminEdit.vue"),
     },
   ],
@@ -49,7 +49,7 @@ router.beforeEach((to, _, next) => {
   const user = useUserStore();
 
   // 即将进入的目标对象具有requireLogin属性，并且user.token里没有任何内容的话，送去/login
-  if (to.meta.requireLogin && !user.token) {
+  if (to.meta.requiresAdmin && user.identity !== "admin") {
     next("/login");
   } else {
     next(); // 放行

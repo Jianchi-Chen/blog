@@ -20,7 +20,8 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
     // 当modelValue更新时，接收val值，并不返回任何值。父组件使用:model接收
-    (e: `update:modelValue`, val: string): void
+    // (e: `update:modelValue`, val: string): void
+    'update:modelValue': [val: string]
 }>()
 
 const route = useRoute()

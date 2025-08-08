@@ -7,7 +7,7 @@ export const ArticleSchema = z.object({
   content: z.string().min(1, "不能为空"),
   summary: z.string().optional(),
   created_at: z.iso.datetime().optional(), // 推荐用 ISO 时间字符串
-  update_at: z.string().optional(),
+  update_at: z.iso.datetime().optional(),
   update_count: z.number().optional(),
   author_name: z.string().optional(),
   status: z
@@ -15,6 +15,7 @@ export const ArticleSchema = z.object({
     .optional()
     .default("draft"), // 枚举，默认draft
   views: z.number().min(0).optional(), // 非负数
+  tags: z.array(z.string()).optional().default([]), // 标签
 });
 
 export type Article = z.infer<typeof ArticleSchema>; // 自动推导类型

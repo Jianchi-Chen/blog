@@ -39,6 +39,7 @@ export const useUserStore = defineStore("user", {
     // 判断当前用户是否是管理员
     isAdmin() {
       if (this.username === "admin" || this.username === "123") {
+        this.identity = "admin";
         return true;
       }
       return false;

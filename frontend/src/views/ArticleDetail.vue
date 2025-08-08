@@ -1,13 +1,16 @@
 <template>
-    <!-- todo 待施工 -->
-    <n-flex>
+    <n-flex size="small" style="width: 100%;">
         <n-text v-if="loading" class="text-gray-500">加载中</n-text>
         <n-text v-else-if="error" class="text-red-500">{{ error }}</n-text>
 
         <n-text v-else>
             <n-h1>{{ article.title }}</n-h1>
-            <n-p>创建于 {{ article.created_at }}</n-p>
-            <!-- <div class="prose">{{ article.content }}</div> -->
+            <n-h3>创建于 {{ article.created_at }}</n-h3>
+            <n-flex size="medium">
+                <n-h3>文章标签: </n-h3>
+                <n-tag v-for="(tag, index) in tags" :key="index" type="success">{{ tag }} </n-tag>
+                <n-hr></n-hr>
+            </n-flex>
 
             <div>
                 <!-- vue3 自解包ref，所以不能加.value -->
@@ -28,23 +31,25 @@ import { fetchArticleById } from '@/api/article';
 import CommentSection from '@/components/CommentSection.vue';
 import MdPreview from '@/components/MdPreview.vue';
 import { ArticleSchema, createEmptyArticle, type Article } from '@/types/article';
-import { onMounted, ref, type Ref } from 'vue';
+import { computed, onMounted, ref, watchEffect, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { NCard, NFlex, useMessage, NH1, NText, NH2, NP, NLayout, NHr } from 'naive-ui';
+import { NCard, NFlex, useMessage, NH1, NText, NH2, NH3, NP, NLayout, NHr, NDynamicTags, NTag } from 'naive-ui';
 
 const route = useRoute();
-const articleId = route.params.id as string;
+const articleId = computed(() => route.params.id as string);
 
 // 和articles的常量数组article不同，这里的acticle是一个变量
 const article: Ref<Article> = ref(createEmptyArticle());
 const loading = ref(true);
 const error = ref('');
+const tags: Ref<Article["tags"]> = ref([])
 
 const loadArticle = async () => {
     loading.value = true;
     try {
-        const res = await fetchArticleById(articleId);
+        const res = await fetchArticleById(articleId.value);
         if (res.data) {
+            tags.value = res.data.tags
             article.value = { ...res.data };
         }
         // console.log(article.value.content)
@@ -58,4 +63,10 @@ const loadArticle = async () => {
 onMounted(() => {
     loadArticle();
 })
+
+watchEffect(() => {
+    if (!articleId.value) return
+    loadArticle()
+})
+
 </script>

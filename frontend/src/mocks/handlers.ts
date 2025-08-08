@@ -20,6 +20,7 @@ export const handlers = [
     const res = (await request.json()) as User;
     const exsitingAccount = users.value.find((e) => e.username == res.username);
     if (!exsitingAccount) {
+      console.log("账户不存在", exsitingAccount);
       return HttpResponse.json({
         message: "failed",
       });
@@ -36,18 +37,34 @@ export const handlers = [
     // GET请求的参数在url中，所以要从url中拿
     const url = new URL(request.url); // 把字符串转换成 URL 对象
     const identity = url.searchParams.get("identity"); // ✅ 可以正常访问查询参数
+    const condition = url.searchParams.get("condition");
+    const res_array = ref<Article[]>([]);
 
+    // 识别身份，输出
     if (identity === "admin") {
-      return HttpResponse.json(articles.value);
+      res_array.value = articles.value;
     } else if (identity === "visitor") {
-      return HttpResponse.json(
-        articles.value.filter((art) => art.status === "published")
+      res_array.value = articles.value.filter(
+        (art) => art.status === "published"
       );
     } else {
-      return HttpResponse.json(
-        articles.value.filter((art) => art.status === "published")
+      res_array.value = articles.value.filter(
+        (art) => art.status === "published"
       );
     }
+
+    // 识别条件
+    if (condition !== "") {
+      const tmp = condition?.toLowerCase() || ""; // 大小写不敏感
+
+      res_array.value = res_array.value.filter((article) =>
+        article.title.toLowerCase().includes(tmp)
+      );
+    }
+
+    console.log(res_array.value);
+
+    return HttpResponse.json(res_array.value);
   }),
 
   // 获取文章详情, 使用动态路由
@@ -183,6 +200,30 @@ export const handlers = [
     }
     return HttpResponse.json(newComment);
   }),
+
+  // 获取关键词搜索建议
+  http.get("/suggestions/:keyword", ({ params }) => {
+    const res = params.keyword as string;
+    const sug = res.toLowerCase() || ""; // 大小写不敏感
+
+    const suggestions = articles.value
+      .filter((article) => article.title.toLowerCase().includes(sug))
+      .map((article) => ({ title: article.title, id: article.id }));
+
+    return HttpResponse.json(suggestions);
+  }),
+
+  // 根据条件搜索
+  http.get("/article/:condition", ({ params }) => {
+    const res = params.condition as string;
+    const lower_res = res.toLowerCase() || "";
+
+    const afterFilter = articles.value.filter((art) =>
+      art.title.toLowerCase().includes(lower_res)
+    );
+
+    return HttpResponse.json(afterFilter);
+  }),
 ];
 
 // 模拟数据库，只存于内存中
@@ -194,6 +235,7 @@ let articles = ref<Article[]>([
     status: "published",
     created_at: "2024-06-01",
     content: "最喜欢vue3了",
+    tags: ["vue", "前端"],
   },
   {
     id: "2",
@@ -202,6 +244,7 @@ let articles = ref<Article[]>([
     status: "published",
     created_at: "2024-06-10",
     content: "最喜欢Pinia了",
+    tags: ["pinia", "状态管理"],
   },
   {
     id: "3",
@@ -210,6 +253,7 @@ let articles = ref<Article[]>([
     status: "draft",
     created_at: "2024-06-15",
     content: "最喜欢Tailwind了",
+    tags: ["tailwind", "样式"],
   },
 ]);
 
@@ -217,7 +261,7 @@ let articles = ref<Article[]>([
 const users = ref<User[]>([
   {
     username: "123",
-    identity: "owner",
+    identity: "admin",
     password: "123",
     id: "1",
     token: "",

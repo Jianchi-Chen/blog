@@ -1,6 +1,33 @@
 <template>
-    <n-menu :options="menuOptions" v-model:value="activeKey" mode="horizontal" @update:value="handleSelect"
-        responsive />
+    <n-flex justify="space-between" align="center">
+
+        <n-flex align='center'>
+            <n-button :focusable="false" style="font-size: 20px" :text="false">
+                <n-icon size="27">
+                    <FileTrayFullSharp />
+                </n-icon>
+            </n-button>
+            <n-switch @click="submitToggleTheme">
+                <template #checked>
+                    Dark
+                </template>
+                <template #unchecked>
+                    Light
+                </template>
+            </n-switch>
+            <!-- 把搜索组件放在菜单最右侧 -->
+            <NavSearch @search="onSearch" />
+
+        </n-flex>
+
+        <n-flex>
+            <n-menu :options="menuOptions" v-model:value="activeKey" mode="horizontal" @update:value="handleSelect"
+                responsive />
+
+        </n-flex>
+
+    </n-flex>
+
 </template>
 
 <script setup lang="ts">
@@ -8,8 +35,10 @@ import { useMessage } from "naive-ui";
 import type { MenuOption } from 'naive-ui'
 import { NMenu } from "naive-ui";
 import { useUserStore } from "@/stores/user";
-import { computed, ref } from "vue";
+import { computed, h, ref } from "vue";
 import { useRouter } from "vue-router";
+import NavSearch from '@/components/NavSearch.vue'
+import { FileTrayFullSharp } from '@vicons/ionicons5'
 
 const userstore = useUserStore();
 const router = useRouter();
@@ -17,8 +46,23 @@ const message = useMessage();
 
 // !!user.token 是布尔值，专门用来表示“是否登录”这个状态
 const isLoggedin = computed(() => !!userstore.token);
-
 const activeKey = ref();
+const emit = defineEmits<{
+    toggleTheme: []
+}>()
+
+
+const submitToggleTheme = () => {
+    // console.log("theme change");
+    emit('toggleTheme')
+}
+
+/** 收到子组件的搜索关键词后跳转或过滤 */
+function onSearch(kw: string) {
+    // 示例：跳转到搜索结果页
+    // router.push({ name: 'ArticleList', query: { q: kw } })
+    message.success('搜索中...')
+}
 
 // 利用computed(), 来创建基于其他响应式数据的派生值。当依赖变化时, 其会重新计算
 const menuOptions = computed(() => {
@@ -26,7 +70,8 @@ const menuOptions = computed(() => {
         {
             label: "博客",
             key: "/",
-        }
+        },
+
     ]
 
     // 基于登录状态, 显示导航内容

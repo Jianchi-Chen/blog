@@ -1,6 +1,6 @@
 <template>
     <n-layout>
-        <h2>评论该文章</h2>
+        <n-h2>评论该文章</n-h2>
         <n-alert title="提示" v-if="!userhasLogin">登录后才能发表评论</n-alert>
         <n-flex v-else>
             <n-form :model="formData" :rules="formRules" ref="formRef">
@@ -15,15 +15,15 @@
 
         <n-h2>评论区</n-h2>
         <n-card v-for="comment in comments" :key="comment.id">
-            <p>{{ comment.content }}</p>
-            <div class=" text-green-600">来自: {{ comment.user }} · {{ comment.created_at }}</div>
+            <n-p>{{ comment.content }}</n-p>
+            <n-text type="success">来自: {{ comment.user }} | {{ comment.created_at }}</n-text>
         </n-card>
     </n-layout>
 </template>
 
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user';
-import { NInput, NLayout, NFlex, NFormItem, NForm, NButton, NCard, useMessage, type FormInst, NAlert, NH2 } from 'naive-ui';
+import { NInput, NLayout, NFlex, NFormItem, NForm, NButton, NCard, useMessage, type FormInst, NAlert, NH2, NText, NP } from 'naive-ui';
 import { onMounted, ref, type Ref } from 'vue';
 import { fetchComments, postComment } from '@/api/comment';
 import { useRoute, useRouter } from 'vue-router';
