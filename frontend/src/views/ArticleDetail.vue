@@ -3,7 +3,7 @@
         <n-text v-if="loading" class="text-gray-500">加载中</n-text>
         <n-text v-else-if="error" class="text-red-500">{{ error }}</n-text>
 
-        <n-text v-else>
+        <n-text v-else class="w-[90%]">
             <n-h1>{{ article.title }}</n-h1>
             <n-h3>创建于 {{ article.created_at }}</n-h3>
             <n-flex size="medium">
@@ -20,9 +20,12 @@
             <div>
                 <CommentSection />
             </div>
-
         </n-text>
+
+
+
     </n-flex>
+
 
 </template>
 
@@ -34,6 +37,7 @@ import { ArticleSchema, createEmptyArticle, type Article } from '@/types/article
 import { computed, onMounted, ref, watchEffect, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { NCard, NFlex, useMessage, NH1, NText, NH2, NH3, NP, NLayout, NHr, NDynamicTags, NTag } from 'naive-ui';
+import { ArrowUpCircle } from '@vicons/ionicons5'
 
 const route = useRoute();
 const articleId = computed(() => route.params.id as string);
@@ -52,7 +56,7 @@ const loadArticle = async () => {
             tags.value = res.data.tags
             article.value = { ...res.data };
         }
-        // console.log(article.value.content)
+        // console.log(article.value.title)
     } catch (err) {
         error.value = "无法加载文章详情";
     } finally {
@@ -60,13 +64,15 @@ const loadArticle = async () => {
     }
 }
 
+
+
 onMounted(() => {
     loadArticle();
 })
 
 watchEffect(() => {
     if (!articleId.value) return
-    loadArticle()
+    else loadArticle()
 })
 
 </script>

@@ -15,7 +15,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 const props = defineProps<{
     // vditor的内容
-    modelValue: string,
+    modelValue: string | undefined,
     // articleId: string,
 }>()
 const emit = defineEmits<{
@@ -61,7 +61,7 @@ onMounted(() => {
 // 监听外部传入的 modelValue 变化，并同步更新 Vditor 编辑器的内容
 watch(() => props.modelValue,
     (val) => {
-        if (vditor.value && vditor.value.getValue() !== val) {
+        if (vditor.value && vditor.value.getValue() !== val && val) {
             vditor.value.setValue(val)
         }
     },

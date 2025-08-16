@@ -1,36 +1,39 @@
 <template>
-    <n-flex style="width:50vh">
-        <n-card>
-            <n-tabs default-value="signin" size="large" animated>
-                <n-tab-pane name="signin" tab="登录">
-                    <n-form :model="signinForm" :rules="signinRules" ref="signinRef">
-                        <n-form-item-row label="用户名" path="username">
-                            <n-input v-model:value="signinForm.username" placeholder="请输入用户名" />
-                        </n-form-item-row>
-                        <n-form-item-row label="密码" path="password">
-                            <n-input v-model:value="signinForm.password" placeholder="请输入密码" />
-                        </n-form-item-row>
-                    </n-form>
-                    <n-button type="primary" block secondary strong @click="handleLogin"> 登录 </n-button>
-                </n-tab-pane>
+    <div class="h-screen w-[90vh] grid place-items-center items-start">
+        <n-flex class="w-[50vh]">
+            <n-card>
+                <n-tabs default-value="signin" size="large" animated>
+                    <n-tab-pane name="signin" tab="登录">
+                        <n-form :model="signinForm" :rules="signinRules" ref="signinRef">
+                            <n-form-item-row label="用户名" path="username">
+                                <n-input v-model:value="signinForm.username" placeholder="请输入用户名" />
+                            </n-form-item-row>
+                            <n-form-item-row label="密码" path="password">
+                                <n-input v-model:value="signinForm.password" placeholder="请输入密码" />
+                            </n-form-item-row>
+                        </n-form>
+                        <n-button type="primary" block secondary strong @click="handleLogin"> 登录 </n-button>
+                    </n-tab-pane>
 
-                <n-tab-pane name="signup" tab="注册">
-                    <n-form :model="registerForm" :rules="registerRules" ref="registerRef">
-                        <n-form-item-row label="用户名" path="username">
-                            <n-input v-model:value="registerForm.username" placeholder="请输入用户名" />
-                        </n-form-item-row>
-                        <n-form-item-row label="密码" path="password">
-                            <n-input v-model:value="registerForm.password" placeholder="请输入用户名" />
-                        </n-form-item-row>
-                        <n-form-item-row label="重复密码" path="repassword">
-                            <n-input v-model:value="registerForm.repassword" placeholder="请输入用户名" />
-                        </n-form-item-row>
-                    </n-form>
-                    <n-button type="primary" block secondary strong @click="handleRegister"> 注册 </n-button>
-                </n-tab-pane>
-            </n-tabs>
-        </n-card>
-    </n-flex>
+                    <n-tab-pane name="signup" tab="注册">
+                        <n-form :model="registerForm" :rules="registerRules" ref="registerRef">
+                            <n-form-item-row label="用户名" path="username">
+                                <n-input v-model:value="registerForm.username" placeholder="请输入用户名" />
+                            </n-form-item-row>
+                            <n-form-item-row label="密码" path="password">
+                                <n-input v-model:value="registerForm.password" placeholder="请输入用户名" />
+                            </n-form-item-row>
+                            <n-form-item-row label="重复密码" path="repassword">
+                                <n-input v-model:value="registerForm.repassword" placeholder="请输入用户名" />
+                            </n-form-item-row>
+                        </n-form>
+                        <n-button type="primary" block secondary strong @click="handleRegister"> 注册 </n-button>
+                    </n-tab-pane>
+                </n-tabs>
+            </n-card>
+        </n-flex>
+    </div>
+
 </template>
 
 <script setup lang="ts">

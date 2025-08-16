@@ -1,8 +1,17 @@
 import axios from "axios";
 
 // 发表评论
-export const postComment = (articleId: string, content: string, user: string) => {
+export const postComment = (
+  articleId: string,
+  content: string,
+  user: string
+) => {
   return axios.post("/comment", { articleId, content, user });
+};
+
+// 删除评论
+export const DeleteComment = (CommentId: string, ArticleId: string) => {
+  return axios.delete("/comment", { params: { ArticleId, CommentId } });
 };
 
 // 获取评论

@@ -12,6 +12,7 @@ import { format } from "date-fns"; // 格式化展示
 import type { User } from "@/types/user";
 import type { Comment } from "@/types/comment";
 import { useUserStore } from "@/stores/user";
+import markdownContent from "./cite.md?raw";
 
 export const handlers = [
   // /login 登录
@@ -58,11 +59,11 @@ export const handlers = [
       const tmp = condition?.toLowerCase() || ""; // 大小写不敏感
 
       res_array.value = res_array.value.filter((article) =>
-        article.title.toLowerCase().includes(tmp)
+        article.title?.toLowerCase().includes(tmp)
       );
     }
 
-    console.log(res_array.value);
+    // console.log(res_array.value);
 
     return HttpResponse.json(res_array.value);
   }),
@@ -201,13 +202,32 @@ export const handlers = [
     return HttpResponse.json(newComment);
   }),
 
+  // 删除评论
+  http.delete("/comment", async ({ request }) => {
+    const url = new URL(request.url);
+    const CommentId = url.searchParams.get("CommentId");
+    const ArticleId = url.searchParams.get("ArticleId") || "";
+    console.log("h2", ArticleId);
+
+    console.log("handler1: ", comments[ArticleId]);
+
+    if (ArticleId) {
+      comments[ArticleId] = comments[ArticleId].filter(
+        (i) => i.id !== CommentId
+      );
+    }
+    console.log("handler2: ", comments[ArticleId]);
+
+    return HttpResponse.json(comments[ArticleId]);
+  }),
+
   // 获取关键词搜索建议
   http.get("/suggestions/:keyword", ({ params }) => {
     const res = params.keyword as string;
     const sug = res.toLowerCase() || ""; // 大小写不敏感
 
     const suggestions = articles.value
-      .filter((article) => article.title.toLowerCase().includes(sug))
+      .filter((article) => article.title?.toLowerCase().includes(sug))
       .map((article) => ({ title: article.title, id: article.id }));
 
     return HttpResponse.json(suggestions);
@@ -219,7 +239,7 @@ export const handlers = [
     const lower_res = res.toLowerCase() || "";
 
     const afterFilter = articles.value.filter((art) =>
-      art.title.toLowerCase().includes(lower_res)
+      art.title?.toLowerCase().includes(lower_res)
     );
 
     return HttpResponse.json(afterFilter);
@@ -234,8 +254,8 @@ let articles = ref<Article[]>([
     summary: "学习 Vue 3 的最佳实践",
     status: "published",
     created_at: "2024-06-01",
-    content: "最喜欢vue3了",
-    tags: ["vue", "前端"],
+    content: markdownContent,
+    tags: ["Vue"],
   },
   {
     id: "2",
@@ -244,7 +264,7 @@ let articles = ref<Article[]>([
     status: "published",
     created_at: "2024-06-10",
     content: "最喜欢Pinia了",
-    tags: ["pinia", "状态管理"],
+    tags: ["Pinia"],
   },
   {
     id: "3",
@@ -253,8 +273,17 @@ let articles = ref<Article[]>([
     status: "draft",
     created_at: "2024-06-15",
     content: "最喜欢Tailwind了",
-    tags: ["tailwind", "样式"],
+    tags: ["Tailwind"],
   },
+  // {
+  //       id: "4",
+  //   title: "Naive ui 布局四件套",
+  //   summary: "从零上手到精通",
+  //   status: "published",
+  //   created_at: "2024-06-15",
+  //   content: "",
+  //   tags: ["Tailwind"],
+  // },
 ]);
 
 // 用户数据库

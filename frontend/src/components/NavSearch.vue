@@ -2,7 +2,7 @@
     <n-flex align="center" :size="12">
         <!-- 🔍 图标按钮 -->
         <n-button text :focusable="false" @click="toggleSearch" style="font-size: 20px">
-            <n-icon size="30">
+            <n-icon size="33">
                 <SearchCircle />
             </n-icon>
         </n-button>
@@ -108,6 +108,7 @@ const handleInput = () => {
 const handleSearch = () => {
     // TODO 展示具有相关内容的文章
     search.setCondition(keyword.value)
+    router.push('/')
     showPopover.value = false
 }
 
@@ -118,10 +119,11 @@ const handleSelect = (id: string | undefined) => {
     }
     router.push(`/article/${id}`) //！ 只能跳一次
     toggleSearch()
+    isExpanded.value = !isExpanded.value
 }
 
-onMounted(() => {
-    console.log('NavSearch');
-})
+// onMounted(() => {
+//     console.log('NavSearch');
+// })
 
 </script>

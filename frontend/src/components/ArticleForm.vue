@@ -12,8 +12,8 @@
             <!-- 文章标签 -->
             <n-form-item path="tags" :show-label="false">
                 <n-flex size="large">
-                    <n-text class="m-8">文章标签: </n-text>
-                    <n-dynamic-tags v-model:value="form.tags" placeholder="输入标签后回车" />
+                    <n-text class="m-8">文章标签*1: </n-text>
+                    <n-dynamic-tags v-model:value="form.tags" :max=1 placeholder="输入标签后回车" />
                 </n-flex>
             </n-form-item>
 
@@ -113,6 +113,7 @@ const handleSubmit = async () => {
         } else {
             // 发布模式
             form.value.status = 'draft'
+            if (!form.value.tags) { form.value.tags = ['Universal'] }
             message.success('save Successfully')
             await publishArticle({ ...form.value })
         }

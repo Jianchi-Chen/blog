@@ -136,7 +136,7 @@ const handlePopSelect = (value: string | number | Array<string | number>, option
 }
 
 watchEffect(() => {
-    console.log('当前关键词：', search.condition)
+    // console.log('当前关键词：', search.condition)
     loadArticles()
 })
 

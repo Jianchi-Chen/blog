@@ -2,9 +2,9 @@
     <n-flex justify="space-between" align="center">
 
         <n-flex align='center'>
-            <n-button :focusable="false" style="font-size: 20px" :text="false">
+            <n-button :focusable="false" style="font-size: 20px" :text="false" @click="handlerFolderExpand">
                 <n-icon size="27">
-                    <FileTrayFullSharp />
+                    <FolderOpen />
                 </n-icon>
             </n-button>
             <n-switch @click="submitToggleTheme">
@@ -38,11 +38,13 @@ import { useUserStore } from "@/stores/user";
 import { computed, h, ref } from "vue";
 import { useRouter } from "vue-router";
 import NavSearch from '@/components/NavSearch.vue'
-import { FileTrayFullSharp } from '@vicons/ionicons5'
+import { FolderOpen } from '@vicons/ionicons5'
+import { useArticleStore } from "@/stores/article";
 
 const userstore = useUserStore();
 const router = useRouter();
 const message = useMessage();
+const articleStore = useArticleStore();
 
 // !!user.token 是布尔值，专门用来表示“是否登录”这个状态
 const isLoggedin = computed(() => !!userstore.token);
@@ -78,8 +80,10 @@ const menuOptions = computed(() => {
     if (isLoggedin.value && userstore.isAdmin()) {
         items.push({ label: '后台管理', key: '/admin' })
         items.push({ label: '退出', key: 'logout' })
+        items.push({ label: `当前用户: ${userstore.username}`, key: 'username' })
     } else if (isLoggedin.value) {
         items.push({ label: '退出', key: 'logout' })
+        items.push({ label: `当前用户${userstore.username}`, key: 'username' })
     } else {
         items.push({ label: '登录', key: '/login' })
     }
@@ -97,4 +101,9 @@ const handleSelect = (key: string) => {
     }
 
 };
+
+// 控制侧边导航栏展开与否
+const handlerFolderExpand = () => {
+    articleStore.expandFolder = !articleStore.expandFolder
+}
 </script>

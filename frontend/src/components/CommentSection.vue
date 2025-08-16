@@ -1,10 +1,10 @@
 <template>
-    <n-layout>
+    <n-layout class="w-[90%]">
         <n-h2>评论该文章</n-h2>
         <n-alert title="提示" v-if="!userhasLogin">登录后才能发表评论</n-alert>
-        <n-flex v-else>
-            <n-form :model="formData" :rules="formRules" ref="formRef">
-                <n-form-item path="newComment">
+        <n-flex v-else >
+            <n-form :model="formData" :rules="formRules" ref="formRef" class="w-[90%]">
+                <n-form-item path="newComment" >
                     <n-input type="textarea" v-model:value="formData.newComment" round placeholder="写下你的评论" bordered />
                     <n-button :loading="loading" @click="submitComment">{{ commentCoolDown > 0 ? `${commentCoolDown}秒冷却`
                         :
@@ -13,11 +13,17 @@
             </n-form>
         </n-flex>
 
+
         <n-h2>评论区</n-h2>
         <n-card v-for="comment in comments" :key="comment.id">
             <n-p>{{ comment.content }}</n-p>
-            <n-text type="success">来自: {{ comment.user }} | {{ comment.created_at }}</n-text>
+            <n-flex inline :wrap="false" justify="start" align="center">
+                <n-text type="success">来自: {{ comment.user }} | {{ comment.created_at }}</n-text>
+                <n-button v-if="userStore.identity == 'admin'" @click="handlerDeleteComment(comment.id)"> 删除</n-button>
+            </n-flex>
         </n-card>
+
+
     </n-layout>
 </template>
 
@@ -25,7 +31,7 @@
 import { useUserStore } from '@/stores/user';
 import { NInput, NLayout, NFlex, NFormItem, NForm, NButton, NCard, useMessage, type FormInst, NAlert, NH2, NText, NP } from 'naive-ui';
 import { onMounted, ref, type Ref } from 'vue';
-import { fetchComments, postComment } from '@/api/comment';
+import { DeleteComment, fetchComments, postComment } from '@/api/comment';
 import { useRoute, useRouter } from 'vue-router';
 
 const userStore = useUserStore()
@@ -82,6 +88,14 @@ const submitComment = async () => {
 const loadComments = async () => {
     const res = await fetchComments(articleId)
     comments.value = res.data
+}
+
+// 删除评论
+const handlerDeleteComment = async (commentid: string) => {
+    await DeleteComment(commentid, articleId)
+    loadComments()
+    console.log(comments.value);
+
 }
 
 onMounted(() => {

@@ -6,8 +6,24 @@
                 Clear Sorter
             </n-button>
         </n-flex>
-        <n-data-table :columns="columnsRef" :data="data" :pagination="pagination" :bordered="true" ref="tableRef"
-            @update:sorter="handleSorterChange"></n-data-table>
+
+        <!-- 标签页 -->
+        <n-card>
+            <n-tabs>
+                <n-tab-pane name="articleAdmin" tab="文章管理">
+                    <n-data-table :columns="columnsRef" :data="data" :pagination="pagination" :bordered="true"
+                        ref="tableRef" @update:sorter="handleSorterChange"></n-data-table>
+                </n-tab-pane>
+
+                <!-- 目录管理暂时没想到有什么用处，故不保留 -->
+                <!-- <n-tab-pane name="dynamicTagsManager" tab="目录管理">
+                    <DynamicTagsManager />
+                </n-tab-pane> -->
+            </n-tabs>
+
+
+        </n-card>
+
 
     </n-flex>
 
@@ -26,6 +42,7 @@ import ArticleAction from '@/components/ArticleAction.vue';
 import type { Article } from '@/types/article';
 import type { EnumType } from 'typescript';
 import { array } from 'zod';
+import { useArticleStore } from '@/stores/article';
 
 
 const loading = ref(true);
@@ -35,6 +52,7 @@ const dialog = useDialog();
 const message = useMessage();
 const data = ref<Article[]>([]);
 const tableRef = ref();
+const articleStore = useArticleStore()
 
 interface RowData {
     id: string,
@@ -193,7 +211,8 @@ const handleToggleStatus = async (id: Article["id"], toggle: string) => {
     if (index !== -1 && data.value[index].status !== toggle) {
         // 索引访问类型（indexed access type） 的写法，读作“把 Article 这个类型里名叫 status 的属性的类型拿出来”。
         data.value[index].status = (toggle) as Article["status"];
-        console.log(data.value[index].status);
+        // console.log(data.value[index].status);
+        articleStore.updateFolderContentSignal = true // 通知侧边导航栏更新目录
     }
 }
 
@@ -229,6 +248,8 @@ const clearSorter = async () => {
     tableRef.value.sort(null)
     // await loadArticles()
 }
+
+
 
 // 非受控过滤数据表格, 初始化并更新tag
 watchEffect(() => {

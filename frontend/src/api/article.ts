@@ -6,7 +6,7 @@ import { setup } from "naive-ui/es/radio/src/use-radio";
 // 封装api函数返回promis，故前端调用时使用async/await即可
 
 // 获取文章列表
-export const fetchArticles = (identity: string, condition: string) => {
+export const fetchArticles = (identity: string, condition?: string) => {
   // GET请求中，第二个参数需要写在params里，params 是专门用来指定 URL 查询参数的字段，它的值必须是一个对象
   return axios.get("/articles", { params: { identity, condition } });
 };

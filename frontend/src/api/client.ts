@@ -1,9 +1,10 @@
 import { useUserStore } from "@/stores/user";
 import axios from "axios";
+import { API_BASE_URL } from "@/config";
 
 // 所有 API 请求都会自动继承这些统一配置, 便于维护
 const client = axios.create({
-  baseURL: "http://localhost:5173/", // 全局base后端地址
+  baseURL: API_BASE_URL, // 全局base后端地址
   timeout: 5000, // 请求5s超时
 });
 
