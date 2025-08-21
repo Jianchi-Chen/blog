@@ -4,23 +4,38 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-uuid = { version = "1", features = [
-    "v4",
-] } # 用于生成全局唯一 ID（如用户 ID、文章 ID）；axum = "0.8" 
-tokio = { version = "1", features = ["full"] }
+# Web 框架
+axum = { version = "0.8", features = ["macros"] }
+http = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-dotenvy = "0.15" # 用于从 .env 文件中加载环境变量（如数据库地址、密钥等）
-chrono = { version = "0.4", features = ["serde"] } # 时间日期处理库
-jsonwebtoken = "9" # JWT 编码与验证 ， 登录认证，权限控制
-argon2 = "0.5" # 密码哈希算法
-sea-orm = { version = "1", features = [
-    "sqlx-sqlite",
-    "runtime-tokio-native-tls",
-] } #异步 ORM 框架 , 用于数据库操作（增删改查）；
-tower = "0.5" # 基础异步中间件框架 ，提供服务抽象（Service trait）
-tower-http = { version = "0.6", features = [
-    "fs",
-    "trace",
-    "cors",
-] } # HTTP 中间件集合 HTTP 中间件集合
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+
+# 数据库 / 迁移
+sqlx = { version = "0.8", features = [
+    "runtime-tokio-rustls",
+    "sqlite",
+    "chrono",
+    "migrate",
+] }
+
+# 实用
+thiserror = "1"
+anyhow = "1"
+dotenvy = "0.15"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v7", "serde"] }
+
+# 鉴权 / 密码哈希
+rand = "0.8"
+# rand_core = "0.6.4"
+jsonwebtoken = "9"
+argon2 = { version = "0.5", features = ["std"] }
+password-hash = "0.5"
+
+# 中间件 / 日志
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
