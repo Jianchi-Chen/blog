@@ -40,9 +40,9 @@
 import { NForm, NFormItem, NInput, NButton, NFormItemRow, useMessage, NLayout, NLayoutContent, NFlex, NCard, NTabs, NTabPane } from 'naive-ui';
 import { useUserStore } from '@/stores/user';
 import axios from 'axios';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watchEffect } from 'vue';
 import { useRouter } from 'vue-router';
-import { registerAccount } from '@/api/account';
+import { loginAccount, registerAccount } from '@/api/account';
 
 
 // 状态
@@ -51,6 +51,8 @@ const loading = ref(false);
 //引入Pinia Store和Vue Router
 const userStore = useUserStore();
 const router = useRouter();
+
+// const count = ref(1);
 
 // 登录表单与验证逻辑
 const signinForm = ref({
@@ -119,23 +121,28 @@ const handleLogin = async () => {
     loading.value = true;
 
     try {
+
         // .validate()验证表单
         await signinRef.value?.validate()
 
         // 暂时使用模拟请求（你后续用真实 API 替换）
-        const response = await axios.post('/login', {
-            ...signinForm.value,
-        })
+        const response = await loginAccount(signinForm.value);
+
         if (response.data.message == 'failed') {
             throw new Error('未注册用户')
         }
+
         console.log('[请求拦截]', response.data.url);
+
+        // console.log(response.data); //tokenz
+
 
         // 模拟返回：{ token: "xxx", username: "admin" }
         // 解构+重命名：从 response.data 中取出 username 字段，赋值给变量 name
-        const { token, username: name } = response.data;
+        const token = response.data.token;
+        const name = { ...response.data.user };
 
-        userStore.login(token, name);
+        userStore.login(token, name.username);
         message.success('登录成功')
         router.push('/');
     } catch (err) {
@@ -154,14 +161,16 @@ const handleRegister = async () => {
     try {
         // .validate()验证表单
         await registerRef.value?.validate()
-        const res = await registerAccount({ ...registerForm.value })
+        const res = await registerAccount(registerForm.value)
         if (res.data.message == 'failed') {
             throw new Error('注册失败')
         }
         message.success('注册成功,即将登录... go to Home')
         // console.log('[请求拦截]', res.data.url);
-        const { token, username: name } = res.data;
-        userStore.login(token, name);
+        const token = res.data.token;
+        const name = { ...res.data.user };
+
+        userStore.login(token, name.username);
         router.push('/');
     } catch (err) {
         console.error(err)
@@ -170,7 +179,6 @@ const handleRegister = async () => {
         loading.value = false;
     }
 }
-
 
 
 </script>

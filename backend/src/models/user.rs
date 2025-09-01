@@ -3,10 +3,11 @@
 
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, FromRow, Serialize)]
 pub struct User {
-    pub id: i64,
+    pub id: String,
     pub username: String,
     pub password: String,
     /// 为简化与 SQLite datetime TEXT 的映射，这里使用 String
@@ -15,7 +16,7 @@ pub struct User {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct UserPublic {
-    pub id: i64,
+    pub id: String,
     pub username: String,
     pub identity: String,
 }
@@ -39,16 +40,18 @@ pub struct NewUser {
 
 /// 新增用户
 pub async fn insert_user(pool: &SqlitePool, new: &NewUser) -> Result<User, sqlx::Error> {
+    let id = Uuid::now_v7().to_string(); // 相比new(), now()可以调用当前时间
     // query_as 是 sqlx 的宏：它在 编译期 检查 SQL 语法，并把结果行直接 按列名映射 到你指定的结构体 User。
-    // 第一个类型参数 _ 让编译器推断数据库驱动（这里是 SQLite）；第二个 User 指定目标结构体。
+    // 第一个类型参数 _ 让编译器推断数据库驱动（这里是 SQLite，只有一种数据库的话可以自己推导）；第二个 User 指定目标结构体。
     sqlx::query_as::<_, User>(
         // r#"..."# Rust原始字符串(raw string)语法，被包裹内容不会被转义
         r#"
-        INSERT INTO users (username, password)
-        VALUES (?, ?)
+        INSERT INTO users (id, username, password)
+        VALUES (?, ?, ?)
         RETURNING id, username, password, identity
         "#,
     )
+    .bind(&id) // 需要uuid的feature
     .bind(&new.username)
     .bind(&new.password)
     .fetch_one(pool) //执行语句，并 等待一行结果
@@ -69,7 +72,7 @@ pub async fn find_user_by_username(
 }
 
 /// 通过id查找用户
-pub async fn find_user_by_id(pool: &SqlitePool, id: i64) -> Result<Option<User>, sqlx::Error> {
+pub async fn find_user_by_id(pool: &SqlitePool, id: String) -> Result<Option<User>, sqlx::Error> {
     sqlx::query_as::<_, User>(
         r#"SELECT id, username, password, identity FROM users WHERE id = ? LIMIT 1"#,
     )

@@ -2,13 +2,13 @@
 //! 说明：将 `pool` 和 `config` 放入 `AppState`，方便在 handler 与提取器中访问。
 
 use crate::config::Config;
+use anyhow::Ok;
 use sqlx::{
     SqlitePool,
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
 };
-use std::{env, fs::File, str::FromStr};
-use std::{fs::create_dir, path::Path};
-use tracing_subscriber::fmt::format;
+use std::env;
+use std::path::Path;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -46,6 +46,35 @@ pub async fn new_pool(database_url: &str) -> Result<SqlitePool, sqlx::Error> {
 
 /// 执行迁移（embed 方式，编译期打包）
 /// `./migrations` 目录存放 SQL 脚本
-pub async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::migrate::MigrateError> {
-    sqlx::migrate!("./migrations").run(pool).await
+pub async fn run_migrations(pool: &SqlitePool) -> anyhow::Result<()> {
+    let res = sqlx::migrate!("./migrations").run(pool).await?;
+
+    run_seeds(pool, Path::new("./seeds")).await?;
+    Ok(res)
+}
+
+/// 执行 seeds 目录下的所有 .sql 文件
+async fn run_seeds(pool: &SqlitePool, dir: &Path) -> anyhow::Result<()> {
+    // if !dir.is_dir() {
+    //     return Err(anyhow!("dir isn't a correct direction! "));
+    // }
+
+    // 1. 收集所有 .sql 文件并按文件名排序, 异步环境下使用tokio::fs
+    let mut entries = tokio::fs::read_dir(dir).await?;
+    let mut files = Vec::new();
+    while let Some(entry) = entries.next_entry().await? {
+        let path = entry.path();
+        if path.extension().map_or(false, |ext| ext == "sql") {
+            files.push(path);
+        }
+    }
+    files.sort();
+
+    // 2. 依次执行
+    for file in files {
+        let sql = tokio::fs::read_to_string(&file).await?;
+        sqlx::query(&sql).execute(pool).await?;
+        // println!("✅ executed: {}", file.display());
+    }
+    Ok(())
 }

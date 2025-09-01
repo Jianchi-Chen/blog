@@ -1,4 +1,3 @@
-import type { Article } from "@/types/article";
 import { defineStore } from "pinia";
 
 export const useSearchStore = defineStore("search", {

@@ -18,6 +18,8 @@ pub async fn list(
     State(state): State<Arc<AppState>>,
     _auth: JwtAuth, // 需要登录
 ) -> AppResult<Json<ListUsersResponse>> {
+    // panic!("pool: {:?}", &state.pool);
+    // println!("1");
     let users = list_users(&state.pool, 100).await?;
     Ok(Json(ListUsersResponse { users }))
 }

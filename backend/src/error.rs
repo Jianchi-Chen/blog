@@ -1,12 +1,12 @@
 //! 统一错误类型：将业务/系统错误映射为 HTTP 响应，便于 handler 中使用 `?`。
 
+use anyhow::Error;
 use axum::{
     Json,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
-use sqlx::error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -17,6 +17,8 @@ pub enum AppError {
     Unauthorized(String),
     #[error("bad request: {0}")]
     BadRequest(String),
+    #[error("insufficient privileges")]
+    Forbidden,
     #[error(transparent)]
     // #[from] 帮你 自动实现 From<sqlx::Error> for AppError，于是你可以直接 ? 把 sqlx::Error 转成 AppError。
     Sqlx(#[from] sqlx::Error),
@@ -49,6 +51,7 @@ impl IntoResponse for AppError {
             AppError::Jwt(_) | AppError::PasswordHash(_) => {
                 (StatusCode::UNAUTHORIZED, "invalid token".into())
             }
+            AppError::Forbidden => (StatusCode::FORBIDDEN, self.to_string()),
         };
 
         let body = Json(ErrorBody {

@@ -8,7 +8,9 @@
             <n-h3>创建于 {{ article.created_at }}</n-h3>
             <n-flex size="medium">
                 <n-h3>文章标签: </n-h3>
-                <n-tag v-for="(tag, index) in tags" :key="index" type="success">{{ tag }} </n-tag>
+                <!-- <n-tag v-for="(tag, index) in tags" :key="index" type="success">{{ tag }} </n-tag> 当tags是数组时 -->
+                <n-tag type="success">{{ tags }} </n-tag>
+
                 <n-hr></n-hr>
             </n-flex>
 
@@ -46,7 +48,7 @@ const articleId = computed(() => route.params.id as string);
 const article: Ref<Article> = ref(createEmptyArticle());
 const loading = ref(true);
 const error = ref('');
-const tags: Ref<Article["tags"]> = ref([])
+const tags: Ref<Article["tags"]> = ref("");
 
 const loadArticle = async () => {
     loading.value = true;

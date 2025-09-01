@@ -20,17 +20,17 @@ export const fetchArticleById = (id: Article["id"]) => {
 
 // 新建文章
 export const publishArticle = (arg: Article) => {
-  return axios.post("/article/", arg);
+  return axios.post("/api/article", arg);
 };
 
 // 修改文章
 export const updateArticle = (id: Article["id"], data: Article) => {
-  return axios.put(`/article/${id}`, data);
+  return axios.put(`/api/article/${id}`, data);
 };
 
 // 删除文章
 export const deleteArticle = (id: Article["id"]) => {
-  return axios.delete(`/article/${id}`);
+  return axios.delete(`/api/article/${id}`);
 
   //? message()无法脱离setup()使用，下列代码改为前端使用
   //   const message = useMessage();
@@ -45,7 +45,7 @@ export const deleteArticle = (id: Article["id"]) => {
 
 // 转换文章状态
 export const toggleStatus = (id: Article["id"], toggle: string) => {
-  return axios.patch(`/article/${id}`, { toggle });
+  return axios.patch(`/api/article/${id}`, { toggle });
 };
 
 // 获取建议

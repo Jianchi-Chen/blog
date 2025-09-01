@@ -83,7 +83,7 @@ const menuOptions = computed(() => {
         items.push({ label: `当前用户: ${userstore.username}`, key: 'username' })
     } else if (isLoggedin.value) {
         items.push({ label: '退出', key: 'logout' })
-        items.push({ label: `当前用户${userstore.username}`, key: 'username' })
+        items.push({ label: `当前用户: ${userstore.username}`, key: 'username' })
     } else {
         items.push({ label: '登录', key: '/login' })
     }

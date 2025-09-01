@@ -18,6 +18,8 @@ sqlx = { version = "0.8", features = [
     "sqlite",
     "chrono",
     "migrate",
+    "uuid",
+    # "macros",
 ] }
 
 # 实用

@@ -25,7 +25,7 @@
 
             <n-form-item>
                 <n-button type="primary" @click="handleSubmit" :loading="loading">{{ isEdit ? '暂存修改' : '保存文章'
-                }}</n-button>
+                    }}</n-button>
             </n-form-item>
         </n-form>
     </div>
@@ -56,7 +56,8 @@ const emit = defineEmits<{
 
 // 表单数据。直接赋值会把 form 指向同一个 ref，建议深拷贝
 // 多定义一个tags会覆盖原有tags，这里强定义tags不为undefined
-const form = ref({ ...props.article, tags: props.article.tags ?? [] })
+const form = ref({ ...props.article, tags: props.article.tags ? [props.article.tags] : ['Universal'] })
+
 
 // 校验规则
 const rules = {
@@ -87,12 +88,13 @@ const router = useRouter()
 const formRef = ref()
 const loading = ref(false)
 
+
 // 初始化表单内容并监听字段 
 watch(
     () => props.article,
     (val) => {
         // 手动处理 tags的值
-        if (val) form.value = { ...val, tags: val.tags ?? [] }
+        if (val) form.value = { ...val, tags: val.tags ? [val.tags] : ['Universal'] }
     },
     { immediate: true }
 )
@@ -104,18 +106,20 @@ const handleSubmit = async () => {
         await formRef.value?.validate()
         // console.log("await formRef.value?.validate()  //!  -1")
         loading.value = true;
+        const outcomeForm = { ...form.value, tags: form.value.tags[0] }
 
         if (props.isEdit && props.articleId) {
             // 编辑模式
-            form.value.status = 'draft'
-            await updateArticle(props.articleId, form.value)
+
+            outcomeForm.status = 'draft'
+            await updateArticle(props.articleId, outcomeForm)
             message.success('Changed Successfully')
         } else {
             // 发布模式
-            form.value.status = 'draft'
-            if (!form.value.tags) { form.value.tags = ['Universal'] }
+            outcomeForm.status = 'draft'
+            if (!outcomeForm.tags) { outcomeForm.tags = 'Universal' }
             message.success('save Successfully')
-            await publishArticle({ ...form.value })
+            await publishArticle({ ...outcomeForm })
         }
         emit('done')
         router.push('/admin')

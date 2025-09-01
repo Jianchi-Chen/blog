@@ -1,4 +1,3 @@
-import type { Article } from "@/types/article";
 import { defineStore } from "pinia";
 import type { Ref } from "vue";
 

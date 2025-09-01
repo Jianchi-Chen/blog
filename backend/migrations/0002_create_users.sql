@@ -2,8 +2,8 @@
 CREATE TABLE
     IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
-        username TEXT NOT NULL,
-        password TEXT NOT NULL,
+        username TEXT,
+        password TEXT,
         token TEXT,
-        identity TEXT NOT NULL DEFAULT 'vistor' -- 可约束为 ENUM 值
+        identity TEXT DEFAULT 'visitor' -- 可约束为 ENUM 值
     );

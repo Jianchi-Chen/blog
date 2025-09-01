@@ -4,8 +4,8 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueDevTools from "vite-plugin-vue-devtools";
 import tailwindcss from "@tailwindcss/vite";
-import Components from 'unplugin-vue-components/vite'
-import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
+import Components from "unplugin-vue-components/vite";
+import { NaiveUiResolver } from "unplugin-vue-components/resolvers";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -23,6 +23,17 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
+
+  // 配置 Vite 代理
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:5173", // ← 这里填你的后端端口
+        changeOrigin: true,
+        rewrite: (path) => path,
+      },
     },
   },
 });

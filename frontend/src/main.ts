@@ -11,12 +11,12 @@ import 'vditor/dist/index.css'
 import "vfonts/Lato.css";
 
 // msw
-if (import.meta.env.DEV) {
-  const { worker } = await import("./mocks/browser.ts");
-  await worker.start({
-    onUnhandledRequest: "bypass", // 未 mock 的请求直接放行
-  });
-}
+// if (import.meta.env.DEV) {
+//   const { worker } = await import("./mocks/browser.ts");
+//   await worker.start({
+//     onUnhandledRequest: "bypass", // 未 mock 的请求直接放行
+//   });
+// }
 
 const app = createApp(App);
 

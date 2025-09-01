@@ -20,13 +20,8 @@
                     <DynamicTagsManager />
                 </n-tab-pane> -->
             </n-tabs>
-
-
         </n-card>
-
-
     </n-flex>
-
 </template>
 
 <script setup lang="ts">
@@ -66,9 +61,7 @@ interface RowData {
 const allTags = computed(() => {
     const set = new Set<string>()
     data.value.forEach(i => {
-        i.tags?.forEach(tag => {
-            set.add(tag)
-        })
+        set.add(i.tags);
     })
     return Array.from(set)
 })
@@ -159,7 +152,7 @@ const loadArticles = async () => {
 
     const res = await fetchArticles("admin");
     // axios库会把数据封装在res.data里
-    data.value = res.data.map((item: Article) => ({
+    data.value = res.data.articles.map((item: Article) => ({
         id: item.id,
         title: item.title,
         created_at: item.created_at,
@@ -191,7 +184,7 @@ const handleDelete = async (id: Article["id"]) => {
         onPositiveClick: async () => {
             // 模拟删除接口
             const res = await deleteArticle(id)
-            if (res && res.data.message == "删除成功") {
+            if (res && res.status == 204) {
                 message.success("Delete succeeded");
             } else if (res && res.data.message == "删除失败") {
                 message.error("Delete failed");
@@ -206,6 +199,10 @@ const handleDelete = async (id: Article["id"]) => {
 
 // 转换文章状态
 const handleToggleStatus = async (id: Article["id"], toggle: string) => {
+
+    // console.log(userStore.token);
+
+
     await toggleStatus(id, toggle)
     const index = data.value.findIndex((a) => a.id == id)
     if (index !== -1 && data.value[index].status !== toggle) {
@@ -255,7 +252,7 @@ const clearSorter = async () => {
 watchEffect(() => {
     const tagSet = new Set<string>()
     data.value.forEach(row => {
-        row.tags?.forEach(tag => tagSet.add(tag))
+        tagSet.add(row.tags)
     })
     titleColumn.filterOptions = Array.from(tagSet).map(tag => ({
         // 箭头函数如果直接返回一个 对象字面量，必须用 圆括号 () 包裹起来。否则 JavaScript 会误以为你写的是函数体，而不是一个对象。

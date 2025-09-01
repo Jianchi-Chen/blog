@@ -9,6 +9,7 @@ use crate::models::user::{
 };
 use axum::{Json, extract::State, http::StatusCode};
 use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
 use std::sync::Arc;
 
 #[derive(Deserialize)]
@@ -17,10 +18,10 @@ pub struct RegisterPayload {
     pub password: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct LoginPayload {
-    pub username: String,
     pub password: String,
+    pub username: String,
 }
 
 #[derive(Serialize)]
@@ -56,7 +57,7 @@ pub async fn register(
         password: password_hash,
     };
     let user = insert_user(&state.pool, &new).await?;
-    let token = generate_token(&state, user.id, &user.username)?;
+    let token = generate_token(&state, user.id.clone(), &user.username)?;
     let user_public = user.into();
 
     Ok((
@@ -76,6 +77,8 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginPayload>,
 ) -> AppResult<Json<AuthResponse>> {
+    println!("/login: {:?}", payload.clone());
+
     let Some(user) = find_user_by_username(&state.pool, &payload.username).await? else {
         return Err(AppError::Unauthorized("invalid credentials".into()));
     };
@@ -84,7 +87,7 @@ pub async fn login(
         return Err(AppError::Unauthorized("invalid credentials".into()));
     }
 
-    let token = generate_token(&state, user.id, &user.username)?;
+    let token = generate_token(&state, user.id.clone(), &user.username)?;
     Ok(Json(AuthResponse {
         token,
         user: user.into(),
@@ -96,8 +99,18 @@ pub async fn me(
     State(state): State<Arc<AppState>>,
     JwtAuth(claims): JwtAuth,
 ) -> AppResult<Json<UserPublic>> {
-    let Some(user) = find_user_by_id(&state.pool, claims.sub).await? else {
+    let Some(user) = find_user_by_id(&state.pool, claims.user_id).await? else {
         return Err(AppError::Unauthorized("user not found".into()));
     };
     Ok(Json(user.into()))
+}
+
+// 身份验证
+pub async fn get_ident_by_id(pool: &SqlitePool, id: &str) -> Result<String, sqlx::Error> {
+    let ident = match find_user_by_id(pool, id.to_string()).await? {
+        Some(v) => v.identity,
+        None => "visitor".to_string(),
+    };
+
+    Ok(ident)
 }

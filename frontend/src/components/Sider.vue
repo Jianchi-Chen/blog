@@ -20,6 +20,7 @@ import { useArticleStore } from '@/stores/article';
 const mes = useMessage()
 const router = useRouter()
 const articleStore = useArticleStore()
+// const anti_collision_array = [""]
 const renderIcon = (icon: Component) => {
     return () => h(NIcon, null, { default: () => h(icon) })
 }
@@ -55,52 +56,42 @@ const handleUpdateValue = (key: string, item: MenuOption) => {
     router.push(`/article/${key}`)
 }
 
-// todo 待优化，初始化导航栏
 const loadMenu = async () => {
     try {
         menuOptions.value = [goHomeMenuOptions,
             hrMenuOptions]
         // console.log(menuOptions.value);
 
-        // 子菜单
-        // {
-        //                         type: 'group',
-        //                         label: tmp_tags,
-        //                         key: tmp_tags + '_group',
-        //                         children: [],
-        //             }
-
         const res = await fetchArticles("vistor")
-        if (Array.isArray(res.data)) {
-            res.data.forEach((i: any) => {
-                const tmp_tags = () =>
-                    h(NEllipsis, null, { default: () => i.tags })
+        if (Array.isArray(res.data.articles)) {
+            const tagMap = new Map<string, any>() // 用于快速查找已有标签项
+            res.data.articles.forEach((i: any) => {
+                const tagKey = i.tags || "Universal" // 空标签归为 Universal
 
-                if (i.tags == '') {
-                    menuOptions.value.push({
-                        key: i.id + '_id', label: 'Universal', children: [
+                if (tagMap.has(tagKey)) {
+                    tagMap.get(tagKey).children.push({
+                        label: i.title,
+                        key: i.id,
+                    })
+                } else {
+                    const labelContent = tagKey === "Universal" ? "Universal" : () => h(NEllipsis, null, { default: () => tagKey })
+
+                    const newgroup = {
+                        key: tagKey + '_group',
+                        label: labelContent,
+                        children: [
                             {
                                 label: i.title,
                                 key: i.id,
                             }
                         ]
-                    })
-                    return
+                    }
+
+                    tagMap.set(tagKey, newgroup)
                 }
-
-                menuOptions.value.push({
-                    key: i.id + '_id', label: tmp_tags, children: [
-                        {
-                            label: i.title,
-                            key: i.id,
-                        }
-                    ]
-                })
-
-
             })
+            menuOptions.value = Array.from(tagMap.values())
         }
-
 
         // console.log("当前menuOptions: ", menuOptions);
     }

@@ -15,7 +15,6 @@ use crate::config::Config;
 use crate::db::{AppState, new_pool, run_migrations};
 use crate::routes::create_router;
 use std::net::SocketAddr;
-use std::path::Path;
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 

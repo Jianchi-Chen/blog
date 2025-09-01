@@ -68,10 +68,14 @@ const loadArticles = async () => {
     loading.value = true;
     try {
         const res = await fetchArticles("vistor", search.condition);
-        articles.value = res.data
+        articles.value = res.data.articles;  // default is a object
 
-        getTags()
-        select_value.value = []
+        // console.log(articles.value);
+
+        getTags();
+
+        select_value.value = [];
+
 
     } catch (err) {
         message.error('无法加载文章, 请刷新', {
@@ -98,12 +102,23 @@ const goToDetail = (id: number | string) => {
 const getTags = () => {
     // copilot优化，获取tag
     const tagSet = new Set<string>()
+    // console.log("4");
+    // console.log(articles.value);
+    // console.log(articles.value[0]);
+
+    // console.log(Array.isArray(articles.value)); // 是否是数组
+    // console.log(articles.value.length);         // 数组长度
+    // console.log(Object.keys(articles.value[0] || {})); // 第一个元素的键
+
 
     for (const i of articles.value) {
-        for (const tag of i.tags) {
-            tagSet.add(tag)
-        }
+        // console.log("5");
+
+        // for (const tag of i.tags) {
+            tagSet.add(i.tags)
+        // }
     }
+
     // sort()升序，map()将每一个tag字符串转换为一个对象
     select_options.value = Array.from(tagSet).sort().map(tag => ({
         label: tag,

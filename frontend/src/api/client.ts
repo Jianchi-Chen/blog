@@ -17,7 +17,7 @@ client.interceptors.request.use((config) => {
   const user = useUserStore();
   if (user.token) {
     // “Bearer” 是 JWT token 的一种标准格式写法。
-    config.headers.Authorization = "Bearer ${user.token}";
+    config.headers.Authorization = `Bearer ${user.token}`;
   }
 
   return config;

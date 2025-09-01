@@ -15,7 +15,7 @@ export const ArticleSchema = z.object({
     .optional()
     .default("draft"), // 枚举，默认draft
   views: z.number().min(0).optional(), // 非负数
-  tags: z.array(z.string()).optional().default([]), // 标签
+  tags: z.string().optional().default("Universal"), // 标签
 });
 
 export type Article = z.infer<typeof ArticleSchema>; // 自动推导类型

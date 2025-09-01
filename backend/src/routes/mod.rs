@@ -4,8 +4,11 @@
 //! 调 models 里的 DB 函数
 //! 把结果包装成 JSON 返回给前端
 
+pub mod articles;
 pub mod auth;
+pub mod comments;
 pub mod health;
+pub mod searches;
 pub mod users;
 
 // 路由聚合：
@@ -16,7 +19,7 @@ pub mod users;
 use crate::db::AppState;
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{delete, get, patch, post, put},
 };
 use std::sync::Arc;
 use tower_http::{
@@ -34,13 +37,27 @@ pub fn create_router(state: Arc<AppState>) -> Router {
     // 路由只负责匹配路径和方法，参数由框架自动提取
     let api = Router::new()
         .route("/health", get(health::health))
-        .route("/register", post(auth::register))
-        .route("/login", post(auth::login));
+        .route("/api/register", post(auth::register))
+        .route("/api/login", post(auth::login))
+        .route("/list", get(users::list)) // debug route
+        // articles
+        .route("/articles", get(articles::articles))
+        .route("/api/article", post(articles::handle_post_article))
+        .route("/article/{id}", get(articles::handle_get_article))
+        .route("/api/article/{id}", delete(articles::handle_delete_article))
+        .route("/api/article/{id}", put(articles::handle_put_article))
+        .route("/api/article/{id}", patch(articles::handle_patch_article))
+        // comments
+        .route("/comments/{id}", get(comments::handle_get_comments))
+        .route("/api/comment", post(comments::handle_post_comment))
+        .route("/comment/{comment_id}", delete(comments::handle_delete_comment))
+        // searches
+        .route("/search", get(searches::handle_suggests_by_keys))
+        .with_state(state.clone());
 
     // 返回路由
     Router::new()
         .merge(api)
         .layer(TraceLayer::new_for_http()) // “监控膜”: 每个请求进来/出去时，自动打印日志。
         .layer(cors) // 跨域通行证
-        .with_state(state)
 }
