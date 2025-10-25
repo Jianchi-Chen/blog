@@ -5,3 +5,5 @@ VALUES (
     '$argon2id$v=19$m=19456,t=2,p=1$xJUF+YJE+OglZNMlk0fQrQ$Hj6T+uOmomQ3vyDcqUvn7fUmf8QKXoOOMCZZU8H+5xA',  -- 预先生成的哈希
     'admin'
 );
+
+-- 超管密码：tfF;1J(2WokG,5

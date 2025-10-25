@@ -6,6 +6,7 @@ use axum::{
 };
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
+use tracing_subscriber::field::display;
 // use sqlx::types::Json;
 
 use crate::{
@@ -58,7 +59,11 @@ pub async fn articles(
     State(state): State<Arc<AppState>>,
     Query(params): Query<GetArticlesParams>,
 ) -> AppResult<Json<ArticleResponse>> {
-    // print!("get articles");
+    /* Debug
+       if let Some(tmp) = &params.condition {
+           println!("{}", tmp);
+       }
+    */
 
     let res = get_articles(&state.pool, params).await?;
 

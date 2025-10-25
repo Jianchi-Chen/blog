@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool, query_as};
 
-
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct TmpSuggest {
-    pub title: String,
+    pub title: Option<String>,
+    pub id: Option<String>,
 }
 
 pub async fn get_suggests_by_keyword(
@@ -13,12 +13,13 @@ pub async fn get_suggests_by_keyword(
 ) -> Result<Vec<TmpSuggest>, sqlx::Error> {
     let bind_value = format!("%{}%", params);
 
-    let res = query_as::<_, TmpSuggest>(
+    let res = sqlx::query_as!(
+        TmpSuggest,
         r#"
-        SELECT title FROM articles WHERE title LIKE ?
-    "#,
+            SELECT id, title FROM articles WHERE title LIKE ?
+        "#,
+        bind_value
     )
-    .bind(&bind_value)
     .fetch_all(pool)
     .await?;
 

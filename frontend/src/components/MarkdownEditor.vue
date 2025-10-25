@@ -13,6 +13,7 @@ import Vditor from 'vditor';
 import { onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+
 const props = defineProps<{
     // vditor的内容
     modelValue: string | undefined,
@@ -46,7 +47,9 @@ onMounted(() => {
             preview: {
                 markdown: {
                     toc: true,
-                    mark: true
+                    mark: true,
+                    footnotes: true,
+                    // autoSpace: true
                 }
             },
             input(value) {

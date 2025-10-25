@@ -255,7 +255,7 @@ let articles = ref<Article[]>([
     status: "published",
     created_at: "2024-06-01",
     content: markdownContent,
-    tags: ["Vue"],
+    tags: "Vue",
   },
   {
     id: "2",
@@ -264,7 +264,7 @@ let articles = ref<Article[]>([
     status: "published",
     created_at: "2024-06-10",
     content: "最喜欢Pinia了",
-    tags: ["Pinia"],
+    tags: "Pinia",
   },
   {
     id: "3",
@@ -273,7 +273,7 @@ let articles = ref<Article[]>([
     status: "draft",
     created_at: "2024-06-15",
     content: "最喜欢Tailwind了",
-    tags: ["Tailwind"],
+    tags: "Tailwind",
   },
   // {
   //       id: "4",

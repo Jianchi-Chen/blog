@@ -80,6 +80,16 @@ pub async fn get_articles(
         })?;
     }
 
+    // 再进行一次关键词搜索
+    if let Some(keyword) = params.condition {
+        let filtered_rows: Vec<PubArticles> = rows
+            .clone()
+            .into_iter()
+            .filter(|c| c.title.contains(&keyword))
+            .collect();
+        return Ok(filtered_rows);
+    }
+
     Ok(rows)
 }
 

@@ -36,4 +36,14 @@ export default defineConfig({
       },
     },
   },
+
+  // 避免 Vite 在构建时错误地处理 Naive UI 的某些模块。
+  optimizeDeps: {
+    exclude: ["naive-ui"],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
+  },
 });

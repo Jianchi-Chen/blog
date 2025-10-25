@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     Json,
-    extract::{Query, State},
+    extract::{Path, Query, State},
 };
 use serde::{Deserialize, Serialize};
 
@@ -26,9 +26,9 @@ pub struct SuggestRespond {
 // 获取关键词搜索建议
 pub async fn handle_suggests_by_keys(
     State(state): State<Arc<AppState>>,
-    Query(params): Query<SuggestParams>,
+    Path(keyword): Path<String>,
 ) -> AppResult<Json<SuggestRespond>> {
-    let trim_parmas = params.keyword.trim_matches('"');
+    let trim_parmas = keyword.trim_matches('"');
     let item = get_suggests_by_keyword(&state.pool, trim_parmas).await?;
 
     Ok(Json(SuggestRespond { item }))

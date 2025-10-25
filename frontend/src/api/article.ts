@@ -53,6 +53,7 @@ export const fetchSuggestions = (keyword: string) => {
   return axios.get(`/suggestions/${keyword}`);
 };
 
+// 根据标签获取文章
 export const fetchArticleByConditions = (condition: string) => {
   return axios.get(`/article/${condition}`);
 };

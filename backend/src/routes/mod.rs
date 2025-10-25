@@ -52,7 +52,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/api/comment", post(comments::handle_post_comment))
         .route("/comment/{comment_id}", delete(comments::handle_delete_comment))
         // searches
-        .route("/search", get(searches::handle_suggests_by_keys))
+        .route("/suggestions/{keyword}", get(searches::handle_suggests_by_keys))
         .with_state(state.clone());
 
     // 返回路由

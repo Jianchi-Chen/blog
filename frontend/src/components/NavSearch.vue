@@ -69,7 +69,7 @@ const generateSuggestions = debounce(async () => {
 
     try {
         const res = await fetchSuggestions(keyword.value)
-        const data = res.data
+        const data = res.data.item;
         console.log(res.data);
 
         suggestions.value = data.map((item: any) => ({
@@ -106,6 +106,8 @@ const handleInput = () => {
 
 // 回车搜索
 const handleSearch = () => {
+    console.log(keyword.value);
+
     // TODO 展示具有相关内容的文章
     search.setCondition(keyword.value)
     router.push('/')
