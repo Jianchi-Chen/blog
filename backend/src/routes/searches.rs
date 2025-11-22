@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     Json,
-    extract::{Path, Query, State},
+    extract::{Path, State},
 };
 use serde::{Deserialize, Serialize};
 
@@ -11,12 +11,6 @@ use crate::{
     error::AppResult,
     models::search::{TmpSuggest, get_suggests_by_keyword},
 };
-
-#[derive(Deserialize, Clone, Serialize)]
-pub struct SuggestParams {
-    pub keyword: String,
-    pub limit: Option<String>,
-}
 
 #[derive(Deserialize, Clone, Serialize)]
 pub struct SuggestRespond {

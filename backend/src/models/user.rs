@@ -39,21 +39,22 @@ pub struct NewUser {
 }
 
 /// 新增用户
-pub async fn insert_user(pool: &SqlitePool, new: &NewUser) -> Result<User, sqlx::Error> {
+pub async fn insert_common_user(pool: &SqlitePool, new: &NewUser) -> Result<User, sqlx::Error> {
     let id = Uuid::now_v7().to_string(); // 相比new(), now()可以调用当前时间
     // query_as 是 sqlx 的宏：它在 编译期 检查 SQL 语法，并把结果行直接 按列名映射 到你指定的结构体 User。
     // 第一个类型参数 _ 让编译器推断数据库驱动（这里是 SQLite，只有一种数据库的话可以自己推导）；第二个 User 指定目标结构体。
     sqlx::query_as::<_, User>(
         // r#"..."# Rust原始字符串(raw string)语法，被包裹内容不会被转义
         r#"
-        INSERT INTO users (id, username, password)
-        VALUES (?, ?, ?)
+        INSERT INTO users (id, username, password, identity)
+        VALUES (?, ?, ?, ?)
         RETURNING id, username, password, identity
         "#,
     )
     .bind(&id) // 需要uuid的feature
     .bind(&new.username)
     .bind(&new.password)
+    .bind("user")
     .fetch_one(pool) //执行语句，并 等待一行结果
     .await
 }
@@ -82,13 +83,30 @@ pub async fn find_user_by_id(pool: &SqlitePool, id: String) -> Result<Option<Use
 }
 
 /// 用户列表
-pub async fn list_users(pool: &SqlitePool, limit: i64) -> Result<Vec<UserPublic>, sqlx::Error> {
-    let rows = sqlx::query_as::<_, User>(
-        r#"SELECT id, username, password, identity FROM users ORDER BY id ASC LIMIT ?"#,
+pub async fn list_users(pool: &SqlitePool, limit: i32) -> Result<Vec<UserPublic>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT id, username, identity FROM users ORDER BY id LIMIT ?"#,
+        limit
     )
-    .bind(limit)
-    .fetch_all(pool) // 执行语句，返回所有行
+    .fetch_all(pool)
     .await?;
 
-    Ok(rows.into_iter().map(UserPublic::from).collect()) // 单函数参数
+    let users = rows
+        .into_iter()
+        .map(|row| UserPublic {
+            id: row.id.unwrap_or_default(),
+            username: row.username.unwrap_or_default(),
+            identity: row.identity.unwrap_or_default(),
+        })
+        .collect::<Vec<UserPublic>>();
+
+    Ok(users)
+}
+
+/// 通过id删除用户
+pub async fn delete_user_by_id(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Error> {
+    sqlx::query!(r#"DELETE FROM users WHERE id = ?"#, id)
+        .execute(pool)
+        .await?;
+    Ok(())
 }

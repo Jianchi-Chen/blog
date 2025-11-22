@@ -1,11 +1,11 @@
 //! /auth 相关路由：注册、登录、获取当前用户信息
 //! 说明：演示如何组合 models + auth + error + state
 
-use crate::auth::{JwtAuth, generate_token, hash_password, verify_password};
+use crate::auth::{generate_token, hash_password, verify_password};
 use crate::db::AppState;
 use crate::error::{AppError, AppResult};
 use crate::models::user::{
-    NewUser, UserPublic, find_user_by_id, find_user_by_username, insert_user,
+    NewUser, UserPublic, find_user_by_id, find_user_by_username, insert_common_user,
 };
 use axum::{Json, extract::State, http::StatusCode};
 use serde::{Deserialize, Serialize};
@@ -48,6 +48,7 @@ pub async fn register(
         .await?
         .is_some()
     {
+        tracing::info!("用户名已被注册: {}", payload.username);
         return Err(AppError::BadRequest("username already registered".into()));
     }
 
@@ -56,10 +57,15 @@ pub async fn register(
         username: payload.username.clone(),
         password: password_hash,
     };
-    let user = insert_user(&state.pool, &new).await?;
+    let user = insert_common_user(&state.pool, &new).await?;
     let token = generate_token(&state, user.id.clone(), &user.username)?;
-    let user_public = user.into();
+    let user_public = user.clone().into();
 
+    tracing::info!(
+        "用户注册成功: {}, 用户身份为: {}",
+        payload.username,
+        user.identity
+    );
     Ok((
         StatusCode::CREATED,
         Json(AuthResponse {
@@ -92,17 +98,6 @@ pub async fn login(
         token,
         user: user.into(),
     }))
-}
-
-/// GET /auth/me
-pub async fn me(
-    State(state): State<Arc<AppState>>,
-    JwtAuth(claims): JwtAuth,
-) -> AppResult<Json<UserPublic>> {
-    let Some(user) = find_user_by_id(&state.pool, claims.user_id).await? else {
-        return Err(AppError::Unauthorized("user not found".into()));
-    };
-    Ok(Json(user.into()))
 }
 
 // 身份验证

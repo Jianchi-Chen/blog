@@ -6,7 +6,6 @@ use axum::{
 };
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
-use tracing_subscriber::field::display;
 // use sqlx::types::Json;
 
 use crate::{
@@ -42,12 +41,13 @@ pub struct NewStatus {
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 pub struct Params {
     pub id: String,
 }
 
 // 获取文章的参数
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct GetArticlesParams {
     pub identity: String,
     pub condition: Option<String>,
@@ -59,15 +59,8 @@ pub async fn articles(
     State(state): State<Arc<AppState>>,
     Query(params): Query<GetArticlesParams>,
 ) -> AppResult<Json<ArticleResponse>> {
-    /* Debug
-       if let Some(tmp) = &params.condition {
-           println!("{}", tmp);
-       }
-    */
-
+    tracing::info!("Fetching articles with params: {:?}", params);
     let res = get_articles(&state.pool, params).await?;
-
-    // println!("{:?}", res);
 
     // 显示赋值；
     Ok(Json(ArticleResponse { articles: res }))

@@ -1,9 +1,9 @@
 use chrono::Local;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, SqlitePool, query, query_as};
+use sqlx::{FromRow, SqlitePool};
 use uuid::Uuid;
 
-use crate::routes::comments::{CommentIncome, DeleteCommentParams};
+use crate::routes::comments::CommentIncome;
 
 #[derive(Serialize, FromRow, Deserialize, Debug)]
 pub struct Comment {

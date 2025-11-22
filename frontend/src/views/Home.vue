@@ -4,24 +4,34 @@
         <!-- 标签过滤 -->
         <n-flex align="center">
             <n-h1 prefix="bar">
-                <n-text type="success">
-                    文章列表
-                </n-text>
+                <n-text type="success"> 文章列表 </n-text>
             </n-h1>
-            <n-popselect v-model:value="select_value" multiple :options="select_options"
-                :on-update:value="handlePopSelect">
+            <n-popselect
+                v-model:value="select_value"
+                multiple
+                :options="select_options"
+            >
                 <n-button :type="select_value.length ? 'success' : 'default'">
-                    {{ Array.isArray(select_value) && select_value.length ? `已选标签：${select_value.join(', ')}` : '按标签选择'
+                    {{
+                        Array.isArray(select_value) && select_value.length
+                            ? `已选标签：${select_value.join(", ")}`
+                            : "按标签选择"
                     }}
                 </n-button>
             </n-popselect>
-            <n-button @click="loadArticles">清空所选标签</n-button>
+            <n-button @click="clearSelectedTags">清空所选标签</n-button>
         </n-flex>
 
         <!-- 文章卡片展示 -->
         <n-h2 v-if="loading">加载中</n-h2>
-        <n-card v-for="article in articles" :key="article.id" :hoverable="true" :embedded="true"
-            @click="goToDetail(article.id)" class="cursor-pointer">
+        <n-card
+            v-for="article in articles"
+            :key="article.id"
+            :hoverable="true"
+            :embedded="true"
+            @click="goToDetail(article.id)"
+            class="cursor-pointer"
+        >
             <n-h2>
                 <n-text type="info">
                     {{ article.title }}
@@ -32,61 +42,65 @@
             <n-p>{{ article.summary }}</n-p>
         </n-card>
     </n-flex>
-
-
-
 </template>
 
 <script setup lang="ts">
-import { NCard, NFlex, useMessage, NH1, NText, NH2, NP, NLayout } from 'naive-ui';
-import { fetchArticleByConditions, fetchArticleById, fetchArticles } from '@/api/article';
-import { onMounted, ref, watch, watchEffect, type Ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useUserStore } from '@/stores/user';
-import { array, optional } from 'zod';
-import type { Article } from '@/types/article';
-import type { SelectBaseOption } from 'naive-ui/es/select/src/interface';
-import { useSearchStore } from '@/stores/search';
+import {
+    NCard,
+    NFlex,
+    useMessage,
+    NH1,
+    NText,
+    NH2,
+    NP,
+    NLayout,
+} from "naive-ui";
+import {
+    fetchArticleByConditions,
+    fetchArticleById,
+    fetchArticles,
+} from "@/api/article";
+import { onMounted, ref, watch, type Ref } from "vue";
+import { useRouter } from "vue-router";
+import { useUserStore } from "@/stores/user";
+import { array, optional } from "zod";
+import type { Article } from "@/types/article";
+import { useSearchStore } from "@/stores/search";
 
 // 文章列表
 const router = useRouter();
 const articles = ref<any[]>([]);
 const loading = ref(true);
 const message = useMessage();
-const select_value = ref<string[]>([])
-const search = useSearchStore()
+const select_value = ref<string[]>([]);
+const search = useSearchStore();
 
 // 筛选项，需要指明对象内容，不然不给value
 interface Option {
-    label: string
-    value: string | number
+    label: string;
+    value: string | number;
 }
-const select_options: Ref<Option[]> = ref([])
+const select_options: Ref<Option[]> = ref([]);
 
 // 获取文章列表
 const loadArticles = async () => {
     loading.value = true;
     try {
         const res = await fetchArticles("vistor", search.condition);
-        articles.value = res.data.articles;  // default is a object
+        articles.value = res.data.articles; // default is a object
 
         // console.log(articles.value);
 
         getTags();
-
-        select_value.value = [];
-
-
     } catch (err) {
-        message.error('无法加载文章, 请刷新', {
+        message.error("无法加载文章, 请刷新", {
             duration: 0, // 设置为 0 表示永不自动关闭
             closable: true, // 加一个关闭按钮以防无法关闭
         });
     } finally {
         loading.value = false;
     }
-}
-
+};
 
 // 页面加载时请求
 onMounted(() => {
@@ -96,63 +110,59 @@ onMounted(() => {
 // 跳转到详情
 const goToDetail = (id: number | string) => {
     router.push(`/article/${id}`);
-}
+};
 
 // 获取并且更新标签
 const getTags = () => {
     // copilot优化，获取tag
-    const tagSet = new Set<string>()
-    // console.log("4");
-    // console.log(articles.value);
-    // console.log(articles.value[0]);
-
-    // console.log(Array.isArray(articles.value)); // 是否是数组
-    // console.log(articles.value.length);         // 数组长度
-    // console.log(Object.keys(articles.value[0] || {})); // 第一个元素的键
-
+    const tagSet = new Set<string>();
 
     for (const i of articles.value) {
-        // console.log("5");
-
-        // for (const tag of i.tags) {
-            tagSet.add(i.tags)
-        // }
+        tagSet.add(i.tags);
     }
-
     // sort()升序，map()将每一个tag字符串转换为一个对象
-    select_options.value = Array.from(tagSet).sort().map(tag => ({
-        label: tag,
-        value: tag
-    }))
-}
+    select_options.value = Array.from(tagSet)
+        .sort()
+        .map((tag) => ({
+            label: tag,
+            value: tag,
+        }));
+};
 
-// 处理标签更新
-const handlePopSelect = (value: string | number | Array<string | number>, option: SelectBaseOption | null | Array<SelectBaseOption>) => {
+// 根据选中标签过滤文章（不在函数内修改 `select_value`，避免触发循环）
+const applyTagFilter = (selected: string[] | undefined) => {
+    const sel = Array.isArray(selected) ? selected.map(String) : [];
 
-    const newArticles: Article[] = []
-    for (const i of articles.value) {
-        for (const tag of i.tags) {
-            if (Array.isArray(value) && value.includes(tag)) {
-                newArticles.push(i)
-                select_value.value = value as string[]
-
-                break
-            } else if (value === tag) {
-                newArticles.push(i)
-                select_value.value.push(String(value))
-
-                break
-            }
-        }
+    if (!sel.length) {
+        // 未选中任何标签，恢复完整列表
+        loadArticles();
+        return;
     }
-    articles.value = newArticles
-    getTags()
 
-}
+    const newArticles: Article[] = articles.value.filter((a: any) =>
+        sel.includes(String(a.tags))
+    );
 
-watchEffect(() => {
-    // console.log('当前关键词：', search.condition)
-    loadArticles()
-})
+    articles.value = newArticles;
+    console.log("筛选后的文章列表: ", articles.value);
+    getTags();
+};
 
+// 清空所选标签
+const clearSelectedTags = () => {
+    select_value.value = [];
+};
+
+// 监听 select_value 的变化来触发筛选（使用 v-model 触发）
+watch(select_value, (newVal) => {
+    applyTagFilter(newVal as string[]);
+});
+
+// 仅在搜索条件变更时重新加载文章（避免无条件重复触发）
+watch(
+    () => search.condition,
+    () => {
+        loadArticles();
+    }
+);
 </script>

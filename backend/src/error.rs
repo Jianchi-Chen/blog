@@ -1,6 +1,5 @@
 //! 统一错误类型：将业务/系统错误映射为 HTTP 响应，便于 handler 中使用 `?`。
 
-use anyhow::Error;
 use axum::{
     Json,
     http::StatusCode,

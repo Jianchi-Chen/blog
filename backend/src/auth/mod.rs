@@ -135,6 +135,7 @@ pub fn decode_token(state: &AppState, token: &str) -> AppResult<Claims> {
 }
 
 // 可选登录器
+#[allow(dead_code)]
 pub struct MaybeJwtAuth(pub Option<Claims>);
 impl<S> FromRequestParts<S> for MaybeJwtAuth
 where

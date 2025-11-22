@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     Json,
-    extract::{Path, Query, State},
+    extract::{Path, State},
 };
 use serde::{Deserialize, Serialize};
 
@@ -67,7 +67,7 @@ pub async fn handle_post_comment(
     let mut username = "".to_string();
     if let Some(u) = find_user_by_id(&state.pool, auth.user_id).await? {
         if u.identity == "visitor" {
-            // println!("{}", u.identity);
+            tracing::info!("游客身份,禁止评论,当前用户身份: {}", u.identity);
             return Err(AppError::Unauthorized("未登录".into()));
         }
         username = u.username;
@@ -79,7 +79,7 @@ pub async fn handle_post_comment(
     } else {
         return Err(AppError::BadRequest("未找到文章".into()));
     };
-
+    tracing::info!("用户 {} 发表评论 {:?} 成功", username, res.content.clone());
     Ok(Json(res))
 }
 

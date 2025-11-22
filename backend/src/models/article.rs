@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     error::AppError,
-    routes::articles::{GetArticlesParams, NewArticle, NewStatus, Params},
+    routes::articles::{GetArticlesParams, NewArticle, NewStatus},
 };
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
