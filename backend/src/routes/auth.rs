@@ -12,10 +12,11 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct RegisterPayload {
     pub username: String,
     pub password: String,
+    pub identity: Option<String>, // 可选字段，仅 admin 创建用户时使用
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -32,6 +33,9 @@ pub struct AuthResponse {
 }
 
 /// POST /register
+/// 接受前端注册以及admin页面的新建用户请求
+/// 前端注册时不带身份字段，默认注册为普通用户
+/// admin创建用户时可带身份字段
 pub async fn register(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RegisterPayload>,
@@ -52,10 +56,22 @@ pub async fn register(
         return Err(AppError::BadRequest("username already registered".into()));
     }
 
+    // 检查身份字段（仅限 admin 创建用户时使用）
+    let identity = match payload.clone().identity {
+        Some(id) if id == "admin" || id == "user" || id == "visitor" => id.clone(),
+        Some(_) => {
+            return Err(AppError::BadRequest(
+                "invalid identity, must be 'admin', 'user' or 'visitor'".into(),
+            ));
+        }
+        None => "user".to_string(), // 默认身份为普通用户
+    };
+
     let password_hash = hash_password(&payload.password)?;
     let new = NewUser {
         username: payload.username.clone(),
         password: password_hash,
+        identity: identity,
     };
     let user = insert_common_user(&state.pool, &new).await?;
     let token = generate_token(&state, user.id.clone(), &user.username)?;
@@ -83,7 +99,7 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginPayload>,
 ) -> AppResult<Json<AuthResponse>> {
-    println!("/login: {:?}", payload.clone());
+    tracing::info!("/login: {:?}", payload.clone());
 
     let Some(user) = find_user_by_username(&state.pool, &payload.username).await? else {
         return Err(AppError::Unauthorized("invalid credentials".into()));
@@ -103,9 +119,15 @@ pub async fn login(
 // 身份验证
 pub async fn get_ident_by_id(pool: &SqlitePool, id: &str) -> Result<String, sqlx::Error> {
     let ident = match find_user_by_id(pool, id.to_string()).await? {
-        Some(v) => v.identity,
-        None => "visitor".to_string(),
+        Some(v) => {
+            tracing::warn!("found user by id: {}, identity: {}", id, v.identity);
+            v.identity
+        }
+        None => {
+            tracing::warn!("can't find user by id: {}", id);
+            "visitor".to_string()
+        }
     };
-
+    dbg!(&ident);
     Ok(ident)
 }

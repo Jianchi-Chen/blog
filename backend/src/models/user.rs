@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use uuid::Uuid;
 
+use crate::routes::users::AdminEditAccountPayload;
+
 #[derive(Debug, Clone, FromRow, Serialize)]
 pub struct User {
     pub id: String,
@@ -36,6 +38,7 @@ impl From<User> for UserPublic {
 pub struct NewUser {
     pub username: String,
     pub password: String,
+    pub identity: String,
 }
 
 /// 新增用户
@@ -54,7 +57,7 @@ pub async fn insert_common_user(pool: &SqlitePool, new: &NewUser) -> Result<User
     .bind(&id) // 需要uuid的feature
     .bind(&new.username)
     .bind(&new.password)
-    .bind("user")
+    .bind(&new.identity)
     .fetch_one(pool) //执行语句，并 等待一行结果
     .await
 }
@@ -108,5 +111,30 @@ pub async fn delete_user_by_id(pool: &SqlitePool, id: &str) -> Result<(), sqlx::
     sqlx::query!(r#"DELETE FROM users WHERE id = ?"#, id)
         .execute(pool)
         .await?;
+    Ok(())
+}
+
+/// 编辑用户账号
+pub async fn edit_user_account(
+    pool: &SqlitePool,
+    new_data: AdminEditAccountPayload,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+            UPDATE users
+            SET
+            username = COALESCE($1, username),
+            password = COALESCE($2, password),
+            identity = COALESCE($3, identity)
+            WHERE id = $4
+    "#,
+        new_data.edited_username,
+        new_data.edited_password,
+        new_data.edited_identity,
+        new_data.edited_id,
+    )
+    .execute(pool)
+    .await?;
+
     Ok(())
 }

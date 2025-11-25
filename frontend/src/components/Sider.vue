@@ -11,16 +11,8 @@
 
 <script setup lang="ts">
 import { NEllipsis, NIcon, useMessage, type MenuOption } from "naive-ui";
-import {
-    computed,
-    h,
-    onMounted,
-    ref,
-    watchEffect,
-    type Component,
-    type Ref,
-} from "vue";
-import { RouterLink, useRouter } from "vue-router";
+import { h, onMounted, ref, watchEffect, type Component, type Ref } from "vue";
+import { useRouter } from "vue-router";
 import {
     BookOutline as BookIcon,
     HomeOutline as HomeIcon,
@@ -34,7 +26,6 @@ import { useArticleStore } from "@/stores/article";
 const mes = useMessage();
 const router = useRouter();
 const articleStore = useArticleStore();
-// const anti_collision_array = [""]
 const renderIcon = (icon: Component) => {
     return () => h(NIcon, null, { default: () => h(icon) });
 };
@@ -43,7 +34,6 @@ const renderIcon = (icon: Component) => {
 const goHomeMenuOptions = {
     label: "Home",
     key: "/",
-    // icon: renderIcon(HomeIcon)
 };
 // 线
 const hrMenuOptions = {
@@ -136,14 +126,6 @@ watchEffect(() => {
 
 // 批量渲染图标
 const renderMenuIcon = (option: MenuOption) => {
-    /** 
-        // 渲染图标占位符以保持缩进
-        if (option.key === 'sheep-man')
-            return true
-        // 返回 false 值，不再渲染图标及占位符
-        if (option.key === 'food')
-            return null
-    */
     if (option.key == "/")
         return h(NIcon, null, { default: () => h(HomeIcon) });
     // console.log("hahahsdhasd");

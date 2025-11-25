@@ -41,6 +41,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/api/login", post(auth::login))
         .route("/api/users", get(users::get_users)) // debug route
         .route("/api/users/{user_id}", delete(users::delete_users))
+        .route("/api/editAccount", put(users::edit_account))
         // articles
         .route("/articles", get(articles::articles))
         .route("/api/article", post(articles::handle_post_article))

@@ -33,7 +33,6 @@
 
 <script setup lang="ts">
 import { useMessage } from "naive-ui";
-import type { MenuOption } from "naive-ui";
 import { NMenu } from "naive-ui";
 import { useUserStore } from "@/stores/user";
 import { computed, h, ref } from "vue";

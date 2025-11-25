@@ -1,38 +1,44 @@
 <template>
     <n-modal
         preset="dialog"
-        :title="'创建新用户'"
+        :title="'编辑用户'"
         :show="show"
         @update:show="(val: boolean) => emit('update:show', val)"
     >
         <n-flex>
-            <n-form ref="formRef" :model="modelRef" :rules="rules">
-                <n-form-item-row label="用户名" path="username">
+            <n-form
+                ref="formRef"
+                :model="modelRef"
+                :rules="rules"
+                label-placement="left"
+                label-width="auto"
+            >
+                <n-form-item label="用户名" path="username">
                     <n-input
                         v-model:value="modelRef.username"
-                        :placeholder="'请输入用户名'"
+                        :placeholder="'编辑用户名'"
                     />
-                </n-form-item-row>
+                </n-form-item>
 
-                <n-form-item-row label="密码" path="password">
+                <n-form-item label="密码" path="password">
                     <n-input
                         type="password"
                         v-model:value="modelRef.password"
-                        :placeholder="'请输入密码'"
+                        :placeholder="'编辑新密码，如果需要的话'"
                     />
-                </n-form-item-row>
+                </n-form-item>
 
-                <n-form-item-row label="重复密码" path="reenteredPassword">
+                <n-form-item label="重复密码" path="reenteredPassword">
                     <n-input
                         type="password"
                         v-model:value="modelRef.reenteredPassword"
-                        :placeholder="'请再次输入密码'"
+                        :placeholder="'请再次输入新密码'"
                     />
-                </n-form-item-row>
+                </n-form-item>
             </n-form>
 
             <n-flex horizontal align="center">
-                <n-text>选择用户身份:</n-text>
+                <n-text>设置用户身份:</n-text>
                 <n-space vertical>
                     <n-radio-group
                         v-model:value="radio_button_value"
@@ -43,25 +49,25 @@
                             :key="identity.value"
                             :value="identity.value"
                             :label="identity.label"
-                            :disabled="identity.disabled"
                         />
                     </n-radio-group>
                 </n-space>
-            </n-flex>
 
-            <n-button type="primary" :loading="loading" @click="createNewUser">
-                创建用户
-            </n-button>
-            <n-button type="error" :loading="loading" @click="cleanForm">
-                清空表单
-            </n-button>
+                <n-button type="primary" :loading="loading" @click="EditUser">
+                    编辑用户
+                </n-button>
+                <n-button type="error" :loading="loading" @click="cleanForm">
+                    清空表单
+                </n-button>
+            </n-flex>
         </n-flex>
     </n-modal>
 </template>
 
 <script setup lang="ts">
-import { registerAccount } from "@/api/account";
-import type { User } from "@/types/user";
+import { EditAccount, registerAccount } from "@/api/account";
+import { useUserStore } from "@/stores/user";
+import type { EditUserData, User } from "@/types/user";
 import {
     useMessage,
     type FormInst,
@@ -71,6 +77,15 @@ import {
 import { computed, ref, watch, type Ref } from "vue";
 import { boolean } from "zod";
 import { de } from "zod/locales";
+
+const props = defineProps<{
+    show: boolean;
+    userdata: User | null;
+}>();
+const emit = defineEmits<{
+    "update:show": [boolean];
+    success: [];
+}>();
 
 interface ModelType {
     username: string;
@@ -84,30 +99,23 @@ const modelRef = ref<ModelType>({
     reenteredPassword: "",
 });
 
+const userstore = useUserStore();
 const loading = ref(false);
+const revisedPassword = ref("false");
 const formRef = ref<FormInst | null>(null);
 const message = useMessage();
-const radio_button_value: Ref<User["identity"] | null> = ref("user");
-
-const props = defineProps<{
-    show: boolean;
-}>();
-
-const emit = defineEmits<{
-    "update:show": [boolean];
-    success: [];
-}>();
+const radio_button_value: Ref<User["identity"] | null> = ref(
+    props.userdata ? props.userdata.identity : "user"
+);
 
 const identities = [
     {
         label: "管理员",
         value: "admin",
-        disabled: true,
     },
     {
         label: "普通用户",
         value: "user",
-        default: true,
     },
     {
         label: "游客",
@@ -118,7 +126,6 @@ const identities = [
 const rules = {
     username: [
         {
-            required: true,
             message: "请输入用户名",
             trigger: ["input", "blur"],
         },
@@ -131,7 +138,6 @@ const rules = {
     ],
     password: [
         {
-            required: true,
             message: "请输入密码",
             trigger: ["blur", "input"],
         },
@@ -144,7 +150,6 @@ const rules = {
     ],
     reenteredPassword: [
         {
-            required: true,
             message: "请再次输入密码",
             trigger: ["input", "blur"],
         },
@@ -160,29 +165,30 @@ const rules = {
         },
     ],
 };
-// 创建新用户
-const createNewUser = async () => {
+
+// 编辑用户
+const EditUser = async () => {
     loading.value = true;
     try {
         await formRef.value?.validate();
-        const datamodel: {
-            username: string;
-            password: string;
-            identity?: string;
-        } = {
-            username: modelRef.value.username,
-            password: modelRef.value.password,
-            identity: radio_button_value.value || "user",
+
+        let payload: EditUserData = {
+            current_token: userstore.token || "",
+            edited_id: props.userdata?.id ? props.userdata.id : "",
+            edited_username: modelRef.value.username,
+            edited_password: modelRef.value.password,
+            edited_identity: radio_button_value.value || "user",
         };
-        const res = await registerAccount(datamodel);
-        if (res.status !== 201) {
-            throw new Error("注册失败");
+        console.log(payload);
+        const res = await EditAccount(payload);
+        if (res.status !== 200) {
+            throw new Error("编辑失败");
         }
-        message.success("创建成功");
+        message.success("编辑成功");
         emit("success");
     } catch (err) {
-        console.error(err);
-        message.error("注册失败");
+        console.error("edit failed" + err);
+        message.error("编辑失败");
     } finally {
         loading.value = false;
     }
@@ -194,4 +200,19 @@ const cleanForm = () => {
     modelRef.value.password = "";
     modelRef.value.reenteredPassword = "";
 };
+
+// 监听 userdata 的变化，更新表单数据
+watch(
+    () => props.userdata,
+    (newUserdata) => {
+        if (newUserdata) {
+            modelRef.value.username = newUserdata.username;
+            radio_button_value.value = newUserdata.identity;
+        } else {
+            cleanForm();
+            radio_button_value.value = "user";
+        }
+    },
+    { immediate: true }
+);
 </script>

@@ -1,9 +1,9 @@
 <template>
     <n-flex vertical :size="12">
         <n-flex>
-            <n-button type="primary" @click="handleAdd">{{
-                newButton
-            }}</n-button>
+            <n-button type="primary" @click="handleAdd">
+                {{ newButton }}
+            </n-button>
             <n-button @click="clearSorter"> Clear Sorter </n-button>
         </n-flex>
 
@@ -34,7 +34,16 @@
             </n-tabs>
         </n-card>
 
-        <NewUserDialog v-model:show="showNewUserDialog" />
+        <NewUserDialog
+            v-model:show="showNewUserDialog"
+            @success="handlerUserSuccess"
+        />
+
+        <EditUserDialog
+            v-model:show="showEditUserDialog"
+            v-model:userdata="SelectedUserdata"
+            @success="handlerUserSuccess"
+        />
     </n-flex>
 </template>
 
@@ -66,6 +75,8 @@ const articleStore = useArticleStore();
 const Userdata = ref<User[]>([]);
 const newButton = ref("New Article");
 const showNewUserDialog = ref(false);
+const showEditUserDialog = ref(false);
+const SelectedUserdata = ref<User | null>(null);
 
 interface RowData {
     id: string;
@@ -218,7 +229,11 @@ const UserColumnsRef = ref<DataTableBaseColumn<UserRowData>[]>([
                         type: "primary",
                         size: "small",
                         onClick: () => {
-                            message.info(`编辑用户 ${row.id} 功能待实现`);
+                            SelectedUserdata.value = Userdata.value.find(
+                                (user) => user.id === row.id
+                            ) as User;
+
+                            showEditUserDialog.value = true;
                         },
                     },
                     { default: () => "编辑" }
@@ -246,11 +261,11 @@ onMounted(() => {
         router.push("/"); // 如果不是管理员，重定向到首页
         return;
     }
-    loadArticles();
+    loadArticlesAndUsers();
 });
 
 // 表格数据
-const loadArticles = async () => {
+const loadArticlesAndUsers = async () => {
     const res = await fetchArticles("admin");
     // axios库会把数据封装在res.data里
     data.value = res.data.articles.map((item: Article) => ({
@@ -311,7 +326,7 @@ const handleDelete = async (id: Article["id"]) => {
                 message.warning("operation failed");
             }
             // 删除后再次拉取数据
-            await loadArticles();
+            await loadArticlesAndUsers();
         },
     });
 };
@@ -380,7 +395,7 @@ const deleteUser = async (id: User["id"]) => {
         onPositiveClick: async () => {
             // guard against undefined/null id so the API always receives string|number
             if (id == null) {
-                message.error("无效的用户ID，无法删除");
+                message.error("无效的用户ID, 无法删除");
                 return;
             }
             try {
@@ -406,6 +421,14 @@ const changeNewButton = (value: string) => {
     newButton.value === "New Article"
         ? (newButton.value = "New User")
         : (newButton.value = "New Article");
+};
+
+// 新建或是更新用户信息成功后的回调
+const handlerUserSuccess = () => {
+    // 重新加载用户数据
+    showNewUserDialog.value = false;
+    showEditUserDialog.value = false;
+    loadArticlesAndUsers();
 };
 
 // 非受控过滤数据表格, 初始化并更新tag
