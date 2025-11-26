@@ -19,6 +19,7 @@ declare module 'vue' {
     IconTooling: typeof import('./src/components/icons/IconTooling.vue')['default']
     MarkdownEditor: typeof import('./src/components/MarkdownEditor.vue')['default']
     MdPreview: typeof import('./src/components/MdPreview.vue')['default']
+    NAffix: typeof import('naive-ui')['NAffix']
     NavBar: typeof import('./src/components/NavBar.vue')['default']
     NavSearch: typeof import('./src/components/NavSearch.vue')['default']
     NBackTop: typeof import('naive-ui')['NBackTop']

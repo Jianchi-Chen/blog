@@ -36,39 +36,36 @@ const toggleTheme = () => {
 
 <template>
     <!-- 整个 Naive UI 的全局配置上下文，例如主题、语言、图标等 -->
-    <n-config-provider :theme="theme" class="w-screen h-screen m-0 p-0">
+    <n-config-provider :theme="theme">
         <!-- 模态框 -->
         <n-modal-provider>
             <!-- 对话框 -->
             <n-dialog-provider>
                 <!-- 所有页面组件都能访问 useMessage() 提供的 API -->
                 <n-message-provider>
-                    <n-layout>
-                        <n-layout-header
-                            class="fixed top-0 left-0 right-0 z-50 bg-white shadow-md"
-                            bordered
-                        >
-                            <!-- <NavBar /> 是顶级组件，它会一直显示在页面上，无论用户访问哪个路径。-->
+                    <n-layout position="absolute" class="h-screen h-full">
+                        <n-layout-header bordered>
                             <NavBar @toggleTheme="toggleTheme" />
                         </n-layout-header>
 
-                        <n-layout has-sider>
+                        <!-- 百分之94高, 是除开NavBar组件的高度 -->
+                        <n-layout has-sider class="h-[94%]">
                             <!-- 天坑：不加collapse-mode="width"的话图标无法展示 -->
                             <n-layout-sider
                                 :collapsed="articleStore.expandFolder"
                                 :width="240"
                                 :collapsed-width="64"
+                                :size="100"
                                 @collapse="articleStore.expandFolder = true"
                                 @expand="articleStore.expandFolder = false"
                                 collapse-mode="width"
-                                class="sticky top-[64px]"
+                                class="!mr-2"
                                 bordered
                             >
                                 <Sider />
                             </n-layout-sider>
 
-                            <n-layout-content class="h-screen pt-[64px] pl-5">
-                                <!-- <router-view /> 是vue-router 提供的占位组件，表示“当前路由匹配到的页面组件”应该渲染在这里。-->
+                            <n-layout-content>
                                 <router-view />
                             </n-layout-content>
                         </n-layout>
