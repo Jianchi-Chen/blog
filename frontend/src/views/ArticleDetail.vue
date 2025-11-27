@@ -46,7 +46,7 @@ const articleId = computed(() => route.params.id as string);
 
 // 和articles的常量数组article不同，这里的acticle是一个变量
 const article: Ref<Article> = ref(createEmptyArticle());
-const loading = ref(true);
+const loading = ref(false);
 const error = ref('');
 const tags: Ref<Article["tags"]> = ref("");
 

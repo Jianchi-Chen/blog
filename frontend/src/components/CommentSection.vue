@@ -1,6 +1,15 @@
 <template>
-    <n-layout class="w-[90%]">
-        <n-h2>评论区</n-h2>
+    <n-layout class="w-[95%]">
+        <div ref="commentTitle">
+            <n-h2>评论区</n-h2>
+        </div>
+        <div :class="{ fixedBottom: isFixed }">
+            <EntryCommentBar :articleId="articleId" @success="postedComment" />
+        </div>
+
+        <n-alert v-if="!ifComment" type="info" show-icon class="mb-4">
+            暂无评论，快来抢沙发吧~
+        </n-alert>
 
         <n-card v-for="comment in comments" :key="comment.comment_id">
             <n-p>{{ comment.content }}</n-p>
@@ -19,35 +28,6 @@
                 >
             </n-flex>
         </n-card>
-
-        <n-affix :offset-bottom="0">
-            <n-alert title="提示" v-if="!userhasLogin"
-                >登录后才能发表评论</n-alert
-            >
-            <n-flex v-else>
-                <n-form
-                    :model="formData"
-                    :rules="formRules"
-                    ref="formRef"
-                    class="w-[90%]"
-                >
-                    <n-form-item path="newComment">
-                        <n-input
-                            type="textarea"
-                            v-model:value="formData.newComment"
-                            round
-                            placeholder="欢迎你的评论"
-                            bordered
-                        />
-                        <n-button :loading="loading" @click="submitComment">{{
-                            commentCoolDown > 0
-                                ? `${commentCoolDown}秒冷却`
-                                : "发表评论"
-                        }}</n-button>
-                    </n-form-item>
-                </n-form>
-            </n-flex>
-        </n-affix>
     </n-layout>
 </template>
 
@@ -69,71 +49,31 @@ import {
     NText,
     NP,
 } from "naive-ui";
-import { onMounted, ref, type Ref } from "vue";
+import { computed, inject, onMounted, onUnmounted, ref, type Ref } from "vue";
 import { DeleteComment, fetchComments, postComment } from "@/api/comment";
 import { useRoute, useRouter } from "vue-router";
+import EntryCommentBar from "./EntryCommentBar.vue";
 
+const commentTitle = ref<HTMLElement | null>(null);
+const isFixed = ref(false);
+const message = useMessage();
 const userStore = useUserStore();
-const userhasLogin = userStore.token ? true : false;
-const loading = ref(false);
-const newComment = ref();
 const route = useRoute();
 const articleId = route.params.id as string;
-const message = useMessage();
 const comments = ref<any[]>([]);
-const formRef = ref<FormInst | null>();
-const commentCoolDown = ref(0);
-const timer = ref(0);
+const ifComment = ref(false);
 const dialog = useDialog();
-
-const formData = ref({
-    newComment: "",
-});
-const formRules = {
-    newComment: {
-        required: true,
-        min: 2,
-        message: "最短评论长度为 2",
-    },
-};
-
-// 发布评论
-const submitComment = async () => {
-    loading.value = true;
-    try {
-        await formRef.value?.validate();
-        await postComment(
-            articleId,
-            formData.value.newComment,
-            userStore.username
-        );
-        message.success("评论成功");
-        await loadComments();
-    } catch (e) {
-        if (e instanceof Error) {
-            message.error(`${e}`);
-        }
-    } finally {
-        // 开始倒计时
-        commentCoolDown.value = 3;
-        timer.value = setInterval(() => {
-            commentCoolDown.value--;
-            if (commentCoolDown.value <= 0) {
-                clearInterval(timer.value as number);
-            }
-        }, 1000);
-
-        formData.value.newComment = "";
-        setTimeout(() => {
-            loading.value = false;
-        }, 3000);
-    }
-};
 
 // 初始化
 const loadComments = async () => {
     const res = await fetchComments(articleId);
     comments.value = res.data.comments;
+    ifComment.value = comments.value.length > 0;
+};
+
+// 发布后刷新评论列表
+const postedComment = async () => {
+    await loadComments();
 };
 
 // 删除评论
@@ -152,10 +92,40 @@ const handlerDeleteComment = async (commentid: string) => {
 
 // 回复评论
 const respondComment = (username: string) => {
-    formData.value.newComment = `@${username} `;
+    // todo 因为分了模块，这里后期再具体实现
 };
 
 onMounted(() => {
+    // 创建一个观察器，用来监听某个 DOM 元素是否进入或离开视口
+    const observer = new IntersectionObserver(
+        ([entry]) => {
+            // entry.isIntersecting 表示元素是否在视口内
+            // 如果标题离开视口顶部，就把 isFixed 设置为 true
+            isFixed.value = !entry.isIntersecting;
+        },
+        { threshold: 0 } // 阈值：0 表示只要元素有任何部分进入/离开视口就触发
+    );
+
+    // 开始观察标题这个 DOM 元素
+    if (commentTitle.value) {
+        observer.observe(commentTitle.value);
+    }
+
+    // 组件卸载时断开观察器，避免内存泄漏
+    onUnmounted(() => observer.disconnect());
+
     loadComments();
 });
 </script>
+
+<style scoped>
+/* 优化这个css使其风格接近chatgpt的输入框 */
+.fixedBottom {
+    position: fixed;
+    bottom: 0;
+    left: 250px;
+    right: 0;
+    background: #fff;
+    z-index: 1000;
+}
+</style>

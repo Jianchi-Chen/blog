@@ -13,7 +13,7 @@ import {
 } from "naive-ui";
 import type { GlobalThemeOverrides, GlobalTheme } from "naive-ui";
 import { useUserStore } from "./stores/user";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, provide, ref } from "vue";
 import Sider from "@/components/Sider.vue";
 import { useArticleStore } from "./stores/article";
 
@@ -67,13 +67,26 @@ const toggleTheme = () => {
 
                             <n-layout-content>
                                 <router-view />
+
+                                <n-back-top
+                                    :bottom="100"
+                                    :visibility-height="300"
+                                >
+                                    <div
+                                        style="
+                                            width: 160px;
+                                            height: 40px;
+                                            line-height: 40px;
+                                            text-align: center;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        BackToTop
+                                    </div>
+                                </n-back-top>
                             </n-layout-content>
                         </n-layout>
                     </n-layout>
-
-                    <template>
-                        <n-back-top :right="100" />
-                    </template>
                 </n-message-provider>
             </n-dialog-provider>
         </n-modal-provider>

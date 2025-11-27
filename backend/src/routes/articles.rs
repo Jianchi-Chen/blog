@@ -98,6 +98,7 @@ pub async fn handle_get_article(
     let res = find_article_by_id(&state.pool, &id).await?;
 
     if let Some(v) = res {
+        tracing::info!("getted article: {:?}", &v.title);
         Ok(Json(v))
     } else {
         return Err(AppError::NotFound);
