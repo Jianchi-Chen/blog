@@ -27,8 +27,6 @@ onMounted(() => {
 // 主题色切换, null 等于 light
 const theme = ref<GlobalTheme | null>(null);
 const toggleTheme = () => {
-    // console.log("app.vue theme change");
-    // console.log(theme.value);
     theme.value = articleStore.osTheme === false ? darkTheme : null;
     articleStore.osTheme = !articleStore.osTheme;
 };
@@ -69,7 +67,7 @@ const toggleTheme = () => {
                                 <router-view />
 
                                 <n-back-top
-                                    :bottom="100"
+                                    :bottom="140"
                                     :visibility-height="300"
                                 >
                                     <div

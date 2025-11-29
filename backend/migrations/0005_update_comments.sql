@@ -1,0 +1,1 @@
+ALTER TABLE comment_likes ADD article_id TEXT;

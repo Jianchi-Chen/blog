@@ -9,6 +9,7 @@
         >
             <n-form-item path="newComment">
                 <n-input
+                    ref="inputRef"
                     type="textarea"
                     :autosize="{
                         minRows: 2,
@@ -38,12 +39,21 @@
 
 <script setup lang="ts">
 import { useUserStore } from "@/stores/user";
-import { inject, onMounted, onUnmounted, ref } from "vue";
+import {
+    inject,
+    onMounted,
+    onUnmounted,
+    ref,
+    watch,
+    watchEffect,
+    nextTick,
+} from "vue";
 import { useMessage, type FormInst } from "naive-ui";
 import { postComment } from "@/api/comment";
 
 const props = defineProps<{
     articleId: string;
+    dataChannel?: string;
 }>();
 const emit = defineEmits<{
     success: [];
@@ -101,6 +111,30 @@ const submitComment = async () => {
         }, 3000);
     }
 };
+
+// 监听 dataChannel 变化，更新评论内容
+watchEffect(() => {
+    if (props.dataChannel) {
+        formData.value.newComment = props.dataChannel;
+    }
+});
+
+// 用于父组件通过 ref 直接设置评论内容并聚焦输入框
+const inputRef = ref<HTMLElement | null>(null);
+const setComment = async (text: string) => {
+    formData.value.newComment = text;
+    // 聚焦到输入框（若组件有 focus 方法）
+    await nextTick();
+    try {
+        // Naive UI Input 实例上有 focus 方法
+        (inputRef.value as any)?.focus?.();
+    } catch (e) {
+        console.error("无法聚焦到输入框:", e);
+    }
+};
+
+// 暴露 setComment 方法给父组件
+defineExpose({ setComment });
 </script>
 
 <style scoped></style>

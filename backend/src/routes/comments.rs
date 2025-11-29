@@ -13,8 +13,8 @@ use crate::{
     models::{
         article::find_article_by_id,
         comment::{
-            Comment, delete_comment_by_comment_id, fetch_comments_by_article_id,
-            post_comment_by_article_id,
+            Comment, CommentWithLike, delete_comment_by_comment_id, fetch_comments_by_article_id,
+            like_comment_db, post_comment_by_article_id,
         },
         user::find_user_by_id,
     },
@@ -23,7 +23,7 @@ use crate::{
 
 #[derive(Serialize, Deserialize)]
 pub struct CommentsResponse {
-    pub comments: Vec<Comment>,
+    pub comments: Vec<CommentWithLike>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -40,11 +40,26 @@ pub struct DeleteCommentParams {
     pub message: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+#[warn(non_snake_case)]
+pub struct LikeCommentPayload {
+    pub comment_id: String,
+}
+
+#[derive(Serialize)]
+pub struct CommentsLikeResponse {
+    pub comment_id: String,
+    pub like_or_unlike: String,
+}
+
 /// 获取评论
 pub async fn handle_get_comments(
     State(state): State<Arc<AppState>>,
     Path(arti_id): Path<String>,
+    JwtAuth(auth): JwtAuth,
 ) -> AppResult<Json<CommentsResponse>> {
+    tracing::info!("Fetching comments for article ID: {:?}", arti_id);
+
     let res;
 
     let arti_id = match find_article_by_id(&state.pool, &arti_id).await? {
@@ -52,7 +67,7 @@ pub async fn handle_get_comments(
         None => return Err(AppError::BadRequest("未找到文章".into())),
     };
 
-    res = fetch_comments_by_article_id(&state.pool, &arti_id).await?;
+    res = fetch_comments_by_article_id(&state.pool, &arti_id, &auth.user_id).await?;
 
     Ok(Json(CommentsResponse { comments: res }))
 }
@@ -89,7 +104,6 @@ pub async fn handle_delete_comment(
     JwtAuth(auth): JwtAuth,
     Path(comment_id): Path<String>,
 ) -> AppResult<Json<DeleteCommentParams>> {
-    // println!("{}", comment_id);
     if get_ident_by_id(&state.pool, &auth.user_id).await? != "admin" {
         return Err(AppError::Unauthorized("权限不足".into()));
     };
@@ -97,7 +111,6 @@ pub async fn handle_delete_comment(
     if delete_comment_by_comment_id(&state.pool, &comment_id).await? != "done".to_string() {
         return Err(AppError::BadRequest("删除失败".into()));
     }
-    // println!("asd");
 
     let res = DeleteCommentParams {
         comment_id,
@@ -106,3 +119,52 @@ pub async fn handle_delete_comment(
 
     Ok(Json(res))
 }
+
+// 点赞评论
+pub async fn like_comment(
+    State(state): State<Arc<AppState>>,
+    JwtAuth(auth): JwtAuth,
+    Json(payload): Json<LikeCommentPayload>,
+) -> AppResult<Json<CommentsLikeResponse>> {
+    tracing::info!(
+        "trying to like comment with ID: {:?} by user ID: {:?}",
+        &payload.comment_id,
+        auth.user_id
+    );
+    // 权限检查
+    if let Some(_) = find_user_by_id(&state.pool, auth.user_id.clone()).await? {
+    } else {
+        return Err(AppError::BadRequest("用户不存在，无法点赞".into()));
+    }
+    let ident = get_ident_by_id(&state.pool, &auth.user_id).await?;
+    if ident != "admin" && ident != "user" {
+        return Err(AppError::Unauthorized("权限不足，无法点赞".into()));
+    }
+
+    let res = like_comment_db(&state.pool, payload.clone(), &auth.user_id).await?;
+
+    tracing::info!("Like or unlike comment successfully: {:?}", res);
+
+    Ok(Json(CommentsLikeResponse {
+        comment_id: payload.comment_id,
+        like_or_unlike: res,
+    }))
+}
+
+// todo 也许这是不需要的接口
+// 获取评论点赞情况
+// pub async fn get_comments_like(
+//     State(state): State<Arc<AppState>>,
+//     Query(article_id): Query<CommentsQuery>,
+// ) -> AppResult<Json<Vec<LikeCommentPayload>>> {
+//     tracing::info!(
+//         "trying to fetch comments like for article ID: {:?}",
+//         article_id
+//     );
+
+//     let res = get_comments_liked_db(&state.pool, &article_id.article_id).await?;
+
+//     tracing::info!("Fetched comments like successfully");
+
+//     Ok(Json(res))
+// }

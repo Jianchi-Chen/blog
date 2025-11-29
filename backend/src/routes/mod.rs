@@ -56,6 +56,8 @@ pub fn create_router(state: Arc<AppState>) -> Router {
             "/comment/{comment_id}",
             delete(comments::handle_delete_comment),
         )
+        .route("/api/comment/like", put(comments::like_comment))
+        // .route("/api/comments/like", get(comments::get_comments_like))
         // searches
         .route(
             "/suggestions/{keyword}",

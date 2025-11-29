@@ -35,7 +35,7 @@ pub struct NewArticle {
     pub tags: Option<String>,
 }
 
-#[derive(Deserialize, Clone, Serialize)]
+#[derive(Deserialize, Clone, Serialize, Debug)]
 pub struct NewStatus {
     pub toggle: String,
 }
@@ -60,6 +60,7 @@ pub async fn articles(
     Query(params): Query<GetArticlesParams>,
 ) -> AppResult<Json<ArticleResponse>> {
     tracing::info!("Fetching articles with params: {:?}", params);
+
     let res = get_articles(&state.pool, params).await?;
 
     // 显示赋值；
@@ -72,8 +73,6 @@ pub async fn handle_post_article(
     JwtAuth(auth): JwtAuth,
     Json(payload): Json<NewArticle>,
 ) -> AppResult<Json<NewArticle>> {
-    // println!("post");
-
     // 验证权限
     match find_user_by_id(&state.pool, auth.user_id).await? {
         Some(u) => {
@@ -85,6 +84,7 @@ pub async fn handle_post_article(
     };
 
     let res = post_article(&state.pool, &payload).await?;
+    tracing::info!("Posting new article: {:?}", payload.title);
 
     Ok(Json(res.into()))
 }
@@ -147,7 +147,7 @@ pub async fn handle_patch_article(
 ) -> AppResult<Json<ArticleModel>> {
     let res;
 
-    // println!("{:?}", payload.toggle);
+    tracing::info!("Patching article status with payload: {:?}", payload);
 
     if let None = find_article_by_id(&state.pool, &id).await? {
         return Err(AppError::Forbidden);
