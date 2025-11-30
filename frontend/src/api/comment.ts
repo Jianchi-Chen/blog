@@ -4,9 +4,10 @@ import axios from "./client";
 export const postComment = (
     article_id: string,
     content: string,
-    user_id: string
+    user_id: string,
+    parent_id?: string
 ) => {
-    return axios.post("/api/comment", { article_id, user_id, content });
+    return axios.post("/api/comment", { article_id, user_id, content, parent_id });
 };
 
 // 删除评论
@@ -32,3 +33,4 @@ export const updateCommentLike = (commentId: string, userToken: string) => {
         comment_id: commentId,
     });
 };
+``

@@ -101,8 +101,8 @@ pub async fn post_comment_by_article_id(
 
     let res: Comment = sqlx::query_as::<_, Comment>(
         r#"INSERT INTO comments 
-        (comment_id, article_id, user, content, created_at) 
-        VALUES (?,?,?,?,?) 
+        (comment_id, article_id, user, content, created_at, parent_id) 
+        VALUES (?,?,?,?,?,?) 
         RETURNING *"#,
     )
     .bind(c_id)
@@ -110,6 +110,7 @@ pub async fn post_comment_by_article_id(
     .bind(username)
     .bind(new.content)
     .bind(create_at)
+    .bind(new.parent_id)
     .fetch_one(pool)
     .await
     .map_err(|e| {

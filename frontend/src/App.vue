@@ -16,6 +16,7 @@ import { useUserStore } from "./stores/user";
 import { computed, onMounted, provide, ref } from "vue";
 import Sider from "@/components/Sider.vue";
 import { useArticleStore } from "./stores/article";
+import { BackToTop } from "@vicons/carbon";
 
 // 获取登录状态
 const userStore = useUserStore();
@@ -70,7 +71,7 @@ const toggleTheme = () => {
                                     :bottom="140"
                                     :visibility-height="300"
                                 >
-                                    <div
+                                    <!-- <div
                                         style="
                                             width: 160px;
                                             height: 40px;
@@ -80,7 +81,15 @@ const toggleTheme = () => {
                                         "
                                     >
                                         BackToTop
-                                    </div>
+                                    </div> -->
+                                    <n-icon-wrapper
+                                        :size="45"
+                                        :border-radius="18"
+                                    >
+                                        <n-icon size="40">
+                                            <BackToTop />
+                                        </n-icon>
+                                    </n-icon-wrapper>
                                 </n-back-top>
                             </n-layout-content>
                         </n-layout>

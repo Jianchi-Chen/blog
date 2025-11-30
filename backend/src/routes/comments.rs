@@ -31,6 +31,7 @@ pub struct CommentIncome {
     pub article_id: String,
     pub user_id: Option<String>,
     pub content: String,
+    pub parent_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

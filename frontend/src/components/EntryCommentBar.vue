@@ -39,15 +39,7 @@
 
 <script setup lang="ts">
 import { useUserStore } from "@/stores/user";
-import {
-    inject,
-    onMounted,
-    onUnmounted,
-    ref,
-    watch,
-    watchEffect,
-    nextTick,
-} from "vue";
+import { ref, watchEffect, nextTick } from "vue";
 import { useMessage, type FormInst } from "naive-ui";
 import { postComment } from "@/api/comment";
 
@@ -67,6 +59,8 @@ const loading = ref(false);
 const commentCoolDown = ref(0);
 const timer = ref(0);
 const formRef = ref<FormInst | null>();
+const inputRef = ref<HTMLElement | null>(null);
+const commentParentId = ref<string | null>(null);
 
 const formData = ref({
     newComment: "",
@@ -87,7 +81,8 @@ const submitComment = async () => {
         await postComment(
             props.articleId,
             formData.value.newComment,
-            userStore.username
+            userStore.username,
+            commentParentId.value ? commentParentId.value : undefined
         );
         message.success("评论成功");
         emit("success");
@@ -120,9 +115,9 @@ watchEffect(() => {
 });
 
 // 用于父组件通过 ref 直接设置评论内容并聚焦输入框
-const inputRef = ref<HTMLElement | null>(null);
-const setComment = async (text: string) => {
+const setComment = async (text: string, parent_id: string) => {
     formData.value.newComment = text;
+    commentParentId.value = parent_id;
     // 聚焦到输入框（若组件有 focus 方法）
     await nextTick();
     try {

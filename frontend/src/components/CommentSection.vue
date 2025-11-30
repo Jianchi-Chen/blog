@@ -28,37 +28,98 @@
         </n-alert>
 
         <n-card v-for="comment in comments" :key="comment.comment_id">
-            <n-p>{{ comment.content }}</n-p>
-            <n-flex inline :wrap="false" justify="start" align="center">
-                <!-- 点赞评论 -->
-                <n-button
-                    @click="likeComment(comment.user, comment.comment_id)"
-                    :bordered="false"
-                >
-                    <div v-if="comment.liked_by_me === 0">
-                        <n-icon size="20"><FavoriteBorderOutlined /></n-icon>
-                    </div>
+            <!-- 主评论 -->
+            <div v-if="comment.parent_id == null">
+                <n-p>{{ comment.content }}</n-p>
+                <n-flex inline :wrap="false" justify="start" align="center">
+                    <!-- 点赞评论 -->
+                    <n-button
+                        @click="
+                            likeComment(
+                                comment.user,
+                                comment.comment_id,
+                                'main'
+                            )
+                        "
+                        :bordered="false"
+                    >
+                        <div v-if="comment.liked_by_me === 0">
+                            <n-icon size="20"
+                                ><FavoriteBorderOutlined
+                            /></n-icon>
+                        </div>
 
-                    <div v-else>
-                        <n-icon size="20"><FavoriteOutlined /></n-icon>
-                    </div>
+                        <div v-else>
+                            <n-icon size="20"><FavoriteOutlined /></n-icon>
+                        </div>
 
-                    {{ comment.like_count }}
-                </n-button>
+                        {{ comment.like_count }}
+                    </n-button>
 
-                <n-text type="success"
-                    >来自: {{ comment.user }} | {{ comment.created_at }}</n-text
-                >
+                    <n-text type="success"
+                        >来自: {{ comment.user }} |
+                        {{ comment.created_at }}</n-text
+                    >
+                    <n-button
+                        @click="
+                            respondComment(comment.user, comment.comment_id)
+                        "
+                    >
+                        回复</n-button
+                    >
+                    <n-button
+                        v-if="userStore.identity == 'admin'"
+                        @click="handlerDeleteComment(comment.comment_id)"
+                    >
+                        删除</n-button
+                    >
+                </n-flex>
+            </div>
 
-                <n-button @click="respondComment(comment.user)"> 回复</n-button>
+            <!-- 子评论 -->
+            <div
+                v-for="child in comment.children"
+                :key="child.comment_id"
+                class="child-comment"
+            >
+                <n-p>{{ child.content }}</n-p>
 
-                <n-button
-                    v-if="userStore.identity == 'admin'"
-                    @click="handlerDeleteComment(comment.comment_id)"
-                >
-                    删除</n-button
-                >
-            </n-flex>
+                <n-flex inline :wrap="false" justify="start" align="center">
+                    <n-button
+                        @click="
+                            likeComment(child.user, child.comment_id, 'child')
+                        "
+                        :bordered="false"
+                    >
+                        <div v-if="child.liked_by_me === 0">
+                            <n-icon size="20"
+                                ><FavoriteBorderOutlined
+                            /></n-icon>
+                        </div>
+                        <div v-else>
+                            <n-icon size="20"><FavoriteOutlined /></n-icon>
+                        </div>
+                        {{ child.like_count }}
+                    </n-button>
+
+                    <n-text type="success">
+                        来自: {{ child.user }} | {{ child.created_at }}
+                    </n-text>
+
+                    <n-button
+                        @click="respondComment(child.user, comment.comment_id)"
+                    >
+                        回复
+                    </n-button>
+
+                    <n-button
+                        v-if="userStore.identity == 'admin'"
+                        @click="handlerDeleteComment(child.comment_id)"
+                    >
+                        删除
+                    </n-button>
+                </n-flex>
+            </div>
         </n-card>
     </n-layout>
 </template>
@@ -76,8 +137,9 @@ import {
     NH2,
     NText,
     NP,
+    c,
 } from "naive-ui";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, type Ref } from "vue";
 import { DeleteComment, fetchComments, updateCommentLike } from "@/api/comment";
 import { useRoute } from "vue-router";
 import { useArticleStore } from "@/stores/article";
@@ -103,9 +165,35 @@ const isLiked = ref([]);
 const loadComments = async () => {
     // 获取评论列表
     const res = await fetchComments(articleId);
-    comments.value = res.data.comments;
+    comments.value = buildCommentsTree(res.data.comments);
     ifComment.value = comments.value.length > 0;
-    console.log(comments.value);
+};
+
+// 构建评论树
+const buildCommentsTree = (comments: any[]) => {
+    const map = new Map();
+    const roots: any[] = [];
+
+    // 为每个评论初始化 children 数组
+    comments.forEach((c) => {
+        map.set(c.comment_id, { ...c, children: [] });
+    });
+
+    // 构建树形结构
+    comments.forEach((c) => {
+        if (c.parent_id == null) {
+            // 一级评论（主评论）直接加入 roots
+            roots.push(map.get(c.comment_id));
+        } else {
+            // 所有非一级评论都作为二级评论加到对应父评论的 children 中
+            const parent = map.get(c.parent_id);
+            if (parent) {
+                parent.children.push(map.get(c.comment_id));
+            }
+        }
+    });
+
+    return roots;
 };
 
 // 发布后刷新评论列表
@@ -128,8 +216,8 @@ const handlerDeleteComment = async (commentid: string) => {
 };
 
 // 回复评论
-const respondComment = (username: string) => {
-    entryRef.value?.setComment?.(`@${username} `);
+const respondComment = (username: string, parent_id: string) => {
+    entryRef.value?.setComment?.(`@${username} `, parent_id);
 };
 
 onMounted(() => {
@@ -155,7 +243,11 @@ onMounted(() => {
 });
 
 // 点赞评论
-const likeComment = async (username: string, commentId: string) => {
+const likeComment = async (
+    username: string,
+    commentId: string,
+    mode: string
+) => {
     const utoken = userStore.token;
     if (!utoken) {
         message.warning("请先登录后再点赞");
@@ -169,7 +261,14 @@ const likeComment = async (username: string, commentId: string) => {
     }
 
     // 局部更新
-    const target = comments.value.find((c) => c.comment_id === commentId);
+    let target: any = null;
+    if (mode === "main") {
+        target = comments.value.find((c) => c.comment_id === commentId);
+    } else {
+        target = comments.value
+            .flatMap((c) => c.children)
+            .find((child: any) => child.comment_id === commentId);
+    }
 
     if (!target) {
         message.error("找不到对应的评论");
@@ -189,7 +288,6 @@ const likeComment = async (username: string, commentId: string) => {
 </script>
 
 <style scoped>
-/* 优化这个css使其风格接近chatgpt的输入框 */
 .fixedBottom {
     position: fixed;
     bottom: 0;
@@ -201,5 +299,17 @@ const likeComment = async (username: string, commentId: string) => {
 /* 防止评论框遮住最后一条评论，添加底部间距 */
 .comment-container {
     padding-bottom: 280px;
+}
+
+/* 子评论样式 - 贴合 Naive UI 风格 */
+.child-comment {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    margin-left: 32px;
+    padding: 12px 16px;
+    border-left: 3px solid var(--n-border-color, #e0e0e0);
+    border-radius: 2px;
+    background: var(--n-color, #fafafa);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 </style>
