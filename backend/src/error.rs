@@ -29,6 +29,8 @@ pub enum AppError {
     Other(#[from] anyhow::Error),
     #[error("密码哈希错误")]
     PasswordHash(#[from] argon2::password_hash::Error),
+    #[error("网络服务错误: {0}")]
+    InternalServerError(String),
 }
 
 #[derive(Serialize)]
@@ -47,6 +49,7 @@ impl IntoResponse for AppError {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "internal server error".into(),
             ),
+            AppError::InternalServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
             AppError::Jwt(_) | AppError::PasswordHash(_) => {
                 (StatusCode::UNAUTHORIZED, "invalid token".into())
             }

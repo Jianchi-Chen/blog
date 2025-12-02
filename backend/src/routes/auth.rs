@@ -71,7 +71,7 @@ pub async fn register(
     let new = NewUser {
         username: payload.username.clone(),
         password: password_hash,
-        identity,
+        identity: identity.clone(),
     };
     let user = insert_common_user(&state.pool, &new).await?;
     let token = generate_token(&state, user.id.clone(), &user.username)?;
@@ -99,15 +99,17 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginPayload>,
 ) -> AppResult<Json<AuthResponse>> {
-    tracing::info!("/login: {:?}", payload.clone());
-
     let Some(user) = find_user_by_username(&state.pool, &payload.username).await? else {
+        tracing::warn!("/login: 用户不存在: {}", payload.username);
         return Err(AppError::Unauthorized("invalid credentials".into()));
     };
 
     if !verify_password(&payload.password, &user.password) {
+        tracing::warn!("/login: 密码错误 for user: {}", payload.username);
         return Err(AppError::Unauthorized("invalid credentials".into()));
     }
+
+    tracing::info!("/login: {:?}", payload.clone());
 
     let token = generate_token(&state, user.id.clone(), &user.username)?;
     Ok(Json(AuthResponse {

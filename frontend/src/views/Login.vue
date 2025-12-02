@@ -201,8 +201,11 @@ const handleLogin = async () => {
         // 解构+重命名：从 response.data 中取出 username 字段，赋值给变量 name
         const token = response.data.token;
         const name = { ...response.data.user };
+        const identity = response.data.identity;
 
-        userStore.login(token, name.username);
+        userStore.login(token, response.data.user);
+        console.log(userStore.identity);
+
         message.success("登录成功");
         router.push("/");
     } catch (err) {
@@ -230,7 +233,7 @@ const handleRegister = async () => {
         const token = res.data.token;
         const name = { ...res.data.user };
 
-        userStore.login(token, name.username);
+        userStore.login(token, res.data.user);
         router.push("/");
     } catch (err) {
         console.error(err);

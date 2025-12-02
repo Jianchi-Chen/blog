@@ -12,6 +12,9 @@
                 :options="select_options"
             >
                 <n-button :type="select_value.length ? 'success' : 'default'">
+                    <n-icon size="20">
+                        <FilterOutline />
+                    </n-icon>
                     {{
                         Array.isArray(select_value) && select_value.length
                             ? `已选标签：${select_value.join(", ")}`
@@ -19,7 +22,12 @@
                     }}
                 </n-button>
             </n-popselect>
-            <n-button @click="clearSelectedTags">清空所选标签</n-button>
+            <n-button @click="clearSelectedTags">
+                <n-icon size="20">
+                    <TrashOutline />
+                </n-icon>
+                清空所选标签</n-button
+            >
         </n-flex>
 
         <!-- 文章卡片展示 -->
@@ -66,6 +74,7 @@ import { useUserStore } from "@/stores/user";
 import { array, optional } from "zod";
 import type { Article } from "@/types/article";
 import { useSearchStore } from "@/stores/search";
+import { FilterOutline, TrashOutline } from "@vicons/ionicons5";
 
 // 文章列表
 const router = useRouter();

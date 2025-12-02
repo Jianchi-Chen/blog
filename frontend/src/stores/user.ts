@@ -10,16 +10,24 @@ export const useUserStore = defineStore("user", {
         token: "", // 存储 JWT token
         username: "", // 当前登录用户
         password: "",
-        identity: "vistor", // 当前用户身份
+        identity: "", // 当前用户身份
     }),
 
     // 全局行为函数
     actions: {
-        login(token: string, username: string, id?: string) {
+        login(
+            token: string,
+            user: {
+                id: string;
+                username: string;
+                identity: string;
+            }
+        ) {
             this.token = token;
-            this.username = username;
+            this.username = user.username;
+            this.identity = user.identity;
             localStorage.setItem("token", token);
-            localStorage.setItem("username", username);
+            localStorage.setItem("username", user.username);
         },
 
         logout() {
@@ -37,7 +45,7 @@ export const useUserStore = defineStore("user", {
 
         // 判断当前用户是否是管理员
         isAdmin() {
-            if (this.username === "admin" || this.username === "123") {
+            if (this.username === "admin" || this.identity === "admin") {
                 this.identity = "admin";
                 return true;
             }

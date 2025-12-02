@@ -1,6 +1,6 @@
 //! /users 相关路由：列表（受保护）
 
-use crate::auth::JwtAuth;
+use crate::auth::{JwtAuth, hash_password};
 use crate::db::AppState;
 use crate::error::{AppError, AppResult};
 use crate::models::user::{UserPublic, delete_user_by_id, edit_user_account, list_users};
@@ -56,6 +56,7 @@ pub struct UsersQuery {
     pub limit: Option<i32>,
 }
 
+// 编辑用户账号（仅管理员可用）
 pub async fn edit_account(
     State(state): State<Arc<AppState>>,
     JwtAuth(auth): JwtAuth,
@@ -97,6 +98,34 @@ pub async fn edit_account(
             "cannot change identity to superadmin".into(),
         ));
     }
+
+    // 将传递的密码转为hash
+    let new_password = if let Some(ref password) = payload.edited_password
+        && !password.is_empty()
+    {
+        match hash_password(password) {
+            Ok(hashed) => Some(hashed),
+            Err(e) => {
+                tracing::warn!(
+                    "failed to hash password in edit account request by user: {:?}, error: {:?}",
+                    auth.user_id,
+                    e
+                );
+                return Err(AppError::InternalServerError(
+                    "failed to hash password".into(),
+                ));
+            }
+        }
+    } else {
+        None
+    };
+    let payload = AdminEditAccountPayload {
+        current_token: payload.current_token,
+        edited_id: payload.edited_id,
+        edited_username: payload.edited_username,
+        edited_password: new_password,
+        edited_identity: payload.edited_identity,
+    };
 
     edit_user_account(&state.pool, payload).await?;
 

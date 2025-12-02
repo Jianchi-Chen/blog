@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { useMessage } from "naive-ui";
+import { NIcon, useMessage } from "naive-ui";
 import { NMenu } from "naive-ui";
 import { useUserStore } from "@/stores/user";
 import { computed, h, ref } from "vue";
@@ -40,6 +40,12 @@ import { useRouter } from "vue-router";
 import NavSearch from "@/components/NavSearch.vue";
 import { FolderOpen } from "@vicons/ionicons5";
 import { useArticleStore } from "@/stores/article";
+import {
+    HomeOutline,
+    LogOutOutline,
+    SettingsOutline,
+    PersonOutline,
+} from "@vicons/ionicons5";
 
 const userstore = useUserStore();
 const router = useRouter();
@@ -71,25 +77,44 @@ const menuOptions = computed(() => {
         {
             label: "博客",
             key: "/",
+            icon: render(HomeOutline),
         },
     ];
 
     // 基于登录状态, 显示导航内容
     if (isLoggedin.value && userstore.isAdmin()) {
-        items.push({ label: "后台管理", key: "/admin" });
-        items.push({ label: "退出", key: "logout" });
+        items.push({
+            label: "后台管理",
+            key: "/admin",
+            icon: render(SettingsOutline),
+        });
+        items.push({
+            label: "退出",
+            key: "logout",
+            icon: render(LogOutOutline),
+        });
         items.push({
             label: `当前用户: ${userstore.username}`,
             key: "username",
+            icon: render(PersonOutline),
         });
     } else if (isLoggedin.value) {
-        items.push({ label: "退出", key: "logout" });
+        items.push({
+            label: "退出",
+            key: "logout",
+            icon: render(LogOutOutline),
+        });
         items.push({
             label: `当前用户: ${userstore.username}`,
             key: "username",
+            icon: render(PersonOutline),
         });
     } else {
-        items.push({ label: "登录", key: "/login" });
+        items.push({
+            label: "登录",
+            key: "/login",
+            icon: render(PersonOutline),
+        });
     }
 
     return items;
@@ -104,6 +129,11 @@ const handleSelect = (key: string) => {
         router.push(`${key}`);
     }
 };
+
+// 添加图片函数
+function render(icon: any) {
+    return () => h(NIcon, null, { default: () => h(icon) });
+}
 
 // 控制侧边导航栏展开与否
 const handlerFolderExpand = () => {

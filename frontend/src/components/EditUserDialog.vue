@@ -176,7 +176,7 @@ const EditUser = async () => {
             current_token: userstore.token || "",
             edited_id: props.userdata?.id ? props.userdata.id : "",
             edited_username: modelRef.value.username,
-            edited_password: modelRef.value.password,
+            edited_password: modelRef.value.password? modelRef.value.password : "",
             edited_identity: radio_button_value.value || "user",
         };
         console.log(payload);
