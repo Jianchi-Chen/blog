@@ -71,7 +71,7 @@ pub async fn register(
     let new = NewUser {
         username: payload.username.clone(),
         password: password_hash,
-        identity: identity,
+        identity,
     };
     let user = insert_common_user(&state.pool, &new).await?;
     let token = generate_token(&state, user.id.clone(), &user.username)?;

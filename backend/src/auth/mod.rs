@@ -38,7 +38,7 @@ pub fn generate_token(state: &AppState, user_id: String, username: &str) -> AppR
         .max(0) as usize;
 
     let claims = Claims {
-        user_id: user_id,
+        user_id,
         message: username.to_string(),
         exp,
         iat,

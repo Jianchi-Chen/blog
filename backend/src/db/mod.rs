@@ -47,10 +47,10 @@ pub async fn new_pool(database_url: &str) -> Result<SqlitePool, sqlx::Error> {
 /// 执行迁移（embed 方式，编译期打包）
 /// `./migrations` 目录存放 SQL 脚本
 pub async fn run_migrations(pool: &SqlitePool) -> anyhow::Result<()> {
-    let res = sqlx::migrate!("./migrations").run(pool).await?;
+    sqlx::migrate!("./migrations").run(pool).await?;
 
     run_seeds(pool, Path::new("./seeds")).await?;
-    Ok(res)
+    Ok(())
 }
 
 /// 执行 seeds 目录下的所有 .sql 文件
@@ -64,7 +64,7 @@ async fn run_seeds(pool: &SqlitePool, dir: &Path) -> anyhow::Result<()> {
     let mut files = Vec::new();
     while let Some(entry) = entries.next_entry().await? {
         let path = entry.path();
-        if path.extension().map_or(false, |ext| ext == "sql") {
+        if path.extension().is_some_and(|ext| ext == "sql") {
             files.push(path);
         }
     }

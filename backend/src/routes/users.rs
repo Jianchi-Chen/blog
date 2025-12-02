@@ -48,7 +48,7 @@ pub async fn delete_users(
     delete_user_by_id(&state.pool, &user_id).await?;
     tracing::info!("Deleted user: {:?}", user_id);
 
-    Ok(StatusCode::NO_CONTENT.into())
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Deserialize, Debug)]
@@ -102,7 +102,7 @@ pub async fn edit_account(
 
     tracing::info!("Edited account for user: {:?}", auth.user_id);
 
-    Ok(StatusCode::OK.into())
+    Ok(StatusCode::OK)
 }
 
 #[derive(Deserialize, Debug)]

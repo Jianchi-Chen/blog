@@ -49,9 +49,8 @@ pub async fn get_articles(
     pool: &SqlitePool,
     params: GetArticlesParams,
 ) -> Result<Vec<PubArticles>, sqlx::Error> {
-    let rows;
-    if params.identity == "admin" {
-        rows = sqlx::query_as::<_, PubArticles>(
+    let rows = if params.identity == "admin" {
+        sqlx::query_as::<_, PubArticles>(
             // r#"..."# Rust原始字符串(raw string)语法，被包裹内容不会被转义
             r#"
             SELECT id, title, created_at, status, views, tags FROM articles
@@ -59,12 +58,11 @@ pub async fn get_articles(
         )
         .fetch_all(pool) //执行语句
         .await
-        .map_err(|e| {
+        .inspect_err(|e| {
             eprintln!("DB error: {:?}", e);
-            e
-        })?;
+        })?
     } else {
-        rows = sqlx::query_as::<_, PubArticles>(
+        sqlx::query_as::<_, PubArticles>(
             // r#"..."# Rust原始字符串(raw string)语法，被包裹内容不会被转义
             r#"
             SELECT id, title, created_at, status, views, tags FROM articles
@@ -74,16 +72,14 @@ pub async fn get_articles(
         .bind("published") // 需要uuid的feature
         .fetch_all(pool) //执行语句
         .await
-        .map_err(|e| {
+        .inspect_err(|e| {
             eprintln!("DB error: {:?}", e);
-            e
-        })?;
-    }
+        })?
+    };
 
     // 再进行一次关键词搜索
     if let Some(keyword) = params.condition {
         let filtered_rows: Vec<PubArticles> = rows
-            .clone()
             .into_iter()
             .filter(|c| c.title.contains(&keyword))
             .collect();
@@ -138,7 +134,7 @@ pub async fn find_article_by_id(
     id: &str,
 ) -> Result<Option<ArticleModel>, sqlx::Error> {
     sqlx::query_as::<_, ArticleModel>(r#"select * from articles where id = ?"#)
-        .bind(&id)
+        .bind(id)
         .fetch_optional(pool)
         .await
 }
@@ -147,7 +143,7 @@ pub async fn find_article_by_id(
 pub async fn delete_article_by_id(pool: &SqlitePool, id: &str) -> Result<StatusCode, AppError> {
     // 使用query / execute 代替 query_as::<> / fetch_*
     let res = sqlx::query(r#"DELETE FROM articles where id = ?"#)
-        .bind(&id)
+        .bind(id)
         .execute(pool)
         .await?;
 

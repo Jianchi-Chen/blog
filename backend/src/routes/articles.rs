@@ -101,7 +101,7 @@ pub async fn handle_get_article(
         tracing::info!("getted article: {:?}", &v.title);
         Ok(Json(v))
     } else {
-        return Err(AppError::NotFound);
+        Err(AppError::NotFound)
     }
 }
 
@@ -121,10 +121,10 @@ pub async fn handle_put_article(
     Json(payload): Json<NewArticle>,
 ) -> AppResult<Json<ArticleModel>> {
     let res;
-    if let Some(v) = payload.id.clone() {
-        if id != v {
-            return Err(AppError::BadRequest("Json 与路由信息不一".into()));
-        }
+    if let Some(v) = payload.id.clone()
+        && id != v
+    {
+        return Err(AppError::BadRequest("Json 与路由信息不一".into()));
     }
 
     let ident = find_user_by_id(&state.pool, auth.user_id).await?;
@@ -135,7 +135,7 @@ pub async fn handle_put_article(
         res = put_article_by_id(&state.pool, &id, payload).await?;
         return Ok(Json(res));
     }
-    return Err(AppError::BadRequest("修改失败".into()));
+    Err(AppError::BadRequest("修改失败".into()))
 }
 
 /// 更变文章状态
@@ -149,7 +149,7 @@ pub async fn handle_patch_article(
 
     tracing::info!("Patching article status with payload: {:?}", payload);
 
-    if let None = find_article_by_id(&state.pool, &id).await? {
+    if (find_article_by_id(&state.pool, &id).await?).is_none() {
         return Err(AppError::Forbidden);
     }
 
@@ -162,5 +162,5 @@ pub async fn handle_patch_article(
         return Ok(Json(res));
     }
 
-    return Err(AppError::BadRequest("更变文章状态失败".into()));
+    Err(AppError::BadRequest("更变文章状态失败".into()))
 }

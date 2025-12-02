@@ -61,14 +61,12 @@ pub async fn handle_get_comments(
 ) -> AppResult<Json<CommentsResponse>> {
     tracing::info!("Fetching comments for article ID: {:?}", arti_id);
 
-    let res;
-
     let arti_id = match find_article_by_id(&state.pool, &arti_id).await? {
         Some(v) => v.id,
         None => return Err(AppError::BadRequest("未找到文章".into())),
     };
 
-    res = fetch_comments_by_article_id(&state.pool, &arti_id, &auth.user_id).await?;
+    let res = fetch_comments_by_article_id(&state.pool, &arti_id, &auth.user_id).await?;
 
     Ok(Json(CommentsResponse { comments: res }))
 }
@@ -89,9 +87,8 @@ pub async fn handle_post_comment(
         username = u.username;
     }
 
-    let res;
-    if let Some(_) = find_article_by_id(&state.pool, &payload.article_id).await? {
-        res = post_comment_by_article_id(&state.pool, payload, &username).await?;
+    let res = if (find_article_by_id(&state.pool, &payload.article_id).await?).is_some() {
+        post_comment_by_article_id(&state.pool, payload, &username).await?
     } else {
         return Err(AppError::BadRequest("未找到文章".into()));
     };
@@ -109,7 +106,7 @@ pub async fn handle_delete_comment(
         return Err(AppError::Unauthorized("权限不足".into()));
     };
 
-    if delete_comment_by_comment_id(&state.pool, &comment_id).await? != "done".to_string() {
+    if delete_comment_by_comment_id(&state.pool, &comment_id).await? != "done" {
         return Err(AppError::BadRequest("删除失败".into()));
     }
 
@@ -133,7 +130,7 @@ pub async fn like_comment(
         auth.user_id
     );
     // 权限检查
-    if let Some(_) = find_user_by_id(&state.pool, auth.user_id.clone()).await? {
+    if (find_user_by_id(&state.pool, auth.user_id.clone()).await?).is_some() {
     } else {
         return Err(AppError::BadRequest("用户不存在，无法点赞".into()));
     }
