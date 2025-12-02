@@ -3,7 +3,10 @@ name: Deploy Frontend to GitHub Pages
 on:
     push:
         branches:
-            - master # 或 main，看你默认分支
+            - master
+
+permissions:
+    contents: write
 
 jobs:
     build-and-deploy:
@@ -19,7 +22,7 @@ jobs:
             - name: Setup Node
               uses: actions/setup-node@v3
               with:
-                  node-version: 18
+                  node-version: 24
 
             - name: Install dependencies
               run: npm install
