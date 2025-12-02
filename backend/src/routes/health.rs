@@ -1,6 +1,6 @@
 //! 健康检查路由：用于探活与简单监控
 
-use axum::{http::StatusCode, Json};
+use axum::{Json, http::StatusCode};
 use serde::Serialize;
 
 #[derive(Serialize)]
