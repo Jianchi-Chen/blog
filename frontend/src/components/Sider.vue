@@ -18,6 +18,8 @@ import {
     HomeOutline as HomeIcon,
     PersonOutline as PersonIcon,
     WineOutline as WineIcon,
+    FolderOpenOutline as FolderIcon,
+    BookmarkOutline as BookmarkIcon,
 } from "@vicons/ionicons5";
 import { fetchArticles } from "@/api/article";
 import type { any } from "zod";
@@ -124,14 +126,36 @@ watchEffect(() => {
     }
 });
 
-// 批量渲染图标
+// 图标池与映射：为分组菜单按顺序分配图标（保持一致性）
+const iconPool: Component[] = [
+    BookIcon,
+    PersonIcon,
+    WineIcon,
+    FolderIcon,
+    BookmarkIcon,
+];
+
+const groupIconMap = new Map<string, Component>();
+let nextIconIndex = 0;
+
+// 批量渲染图标（分组从池中按顺序分配图标，root 使用 Home）
 const renderMenuIcon = (option: MenuOption) => {
     if (option.key == "/")
         return h(NIcon, null, { default: () => h(HomeIcon) });
-    // console.log("hahahsdhasd");
+
     if (option.children) {
-        return h(NIcon, null, { default: () => h(BookIcon) });
+        const key = String(option.key);
+        if (groupIconMap.has(key)) {
+            const iconComp = groupIconMap.get(key) as Component;
+            return h(NIcon, null, { default: () => h(iconComp) });
+        }
+
+        const iconComp = iconPool[nextIconIndex % iconPool.length];
+        groupIconMap.set(key, iconComp);
+        nextIconIndex += 1;
+        return h(NIcon, null, { default: () => h(iconComp) });
     }
+
     return null;
 };
 </script>

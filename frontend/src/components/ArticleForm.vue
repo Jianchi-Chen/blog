@@ -26,6 +26,17 @@
                 </n-flex>
             </n-form-item>
 
+            <!-- 文章摘要 -->
+            <n-form-item label="摘要" path="summary">
+                <n-input
+                    v-model:value="form.summary"
+                    type="textarea"
+                    :rows="3"
+                    round
+                    placeholder="请输入文章摘要"
+                />
+            </n-form-item>
+
             <n-form-item label="内容" path="content">
                 <!-- vue鼓励组件嵌套 -->
                 <!-- 父组件只有一个 v-model 且不带参数时，等价于：v-model:modelValue -->

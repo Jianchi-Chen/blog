@@ -105,7 +105,7 @@
 
                             <!-- 中间:文章摘要 -->
                             <n-ellipsis
-                                :line-clamp="3"
+                                :line-clamp="1"
                                 class="text-base opacity-80"
                             >
                                 {{ article.summary || "暂无摘要" }}
@@ -197,7 +197,7 @@ const loadArticles = async () => {
         const res = await fetchArticles("vistor", search.condition);
         articles.value = res.data.articles; // default is a object
 
-        // console.log(articles.value);
+        console.log(articles.value);
 
         getTags();
     } catch (err) {

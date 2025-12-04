@@ -1,32 +1,54 @@
 <template>
-    <n-flex size="small" style="width: 100%">
-        <n-text v-if="loading" class="text-gray-500">
-            <n-skeleton text :repeat="2" />
-            <n-skeleton text style="width: 60%" />
-        </n-text>
-        <n-text v-else-if="error" class="text-red-500">{{ error }}</n-text>
+    <ns-space vertical size="large" style="width: 100%">
+        <n-card bordered size="large">
+            <template #header>
+                <div class="flex items-start justify-between w-full">
+                    <div class="flex-1">
+                        <h1 class="text-2xl font-semibold leading-tight">
+                            {{ article.title }}
+                        </h1>
+                        <div
+                            class="mt-2 flex items-center gap-3 text-sm text-gray-500"
+                        >
+                            <n-avatar :size="28">{{
+                                (article.author_name || "C")
+                                    .charAt(0)
+                                    .toUpperCase()
+                            }}</n-avatar>
+                            <span class="truncate">{{
+                                article.author_name || "匿名"
+                            }}</span>
+                            <n-time
+                                :value="article.created_at"
+                                time-zone="Asia/Shanghai"
+                                format="yyyy-MM-dd hh:mm"
+                            />
+                            <n-tag type="success" size="small">{{
+                                tags || "未分类"
+                            }}</n-tag>
+                        </div>
+                    </div>
+                </div>
+            </template>
 
-        <n-text v-else class="w-[90%]">
-            <n-h1>{{ article.title }}</n-h1>
-            <n-h3>创建于 {{ article.created_at }}</n-h3>
-            <n-flex size="medium">
-                <n-h3>文章标签: </n-h3>
-                <!-- <n-tag v-for="(tag, index) in tags" :key="index" type="success">{{ tag }} </n-tag> 当tags是数组时 -->
-                <n-tag type="success">{{ tags }} </n-tag>
+            <template #default>
+                <p class="text-gray-600 my-4">
+                    {{ article.summary || "暂无摘要" }}
+                </p>
+                <n-divider />
 
-                <n-hr></n-hr>
-            </n-flex>
+                <div class="prose max-w-none my-4">
+                    <!-- 保持 MdPreview 不变 -->
+                    <MdPreview :md="article.content" />
+                </div>
+            </template>
+        </n-card>
 
-            <div>
-                <!-- vue3 自解包ref，所以不能加.value -->
-                <MdPreview :md="article.content" />
-            </div>
-            <n-hr />
-            <div>
-                <CommentSection />
-            </div>
-        </n-text>
-    </n-flex>
+        <n-card bordered>
+            <!-- 保持 CommentSection 不变 -->
+            <CommentSection />
+        </n-card>
+    </ns-space>
 </template>
 
 <script setup lang="ts">
@@ -40,26 +62,13 @@ import {
 } from "@/types/article";
 import { computed, onMounted, ref, watchEffect, type Ref } from "vue";
 import { useRoute } from "vue-router";
-import {
-    NCard,
-    NFlex,
-    useMessage,
-    NH1,
-    NText,
-    NH2,
-    NH3,
-    NP,
-    NLayout,
-    NHr,
-    NDynamicTags,
-    NTag,
-} from "naive-ui";
+import { NCard, NSpace, NAvatar, NTime, NTag, NDivider } from "naive-ui";
 import { ArrowUpCircle } from "@vicons/ionicons5";
 
 const route = useRoute();
 const articleId = computed(() => route.params.id as string);
 
-// 和articles的常量数组article不同，这里的acticle是一个变量
+// article 是一个可变的响应式对象
 const article: Ref<Article> = ref(createEmptyArticle());
 const loading = ref(false);
 const error = ref("");
@@ -73,7 +82,6 @@ const loadArticle = async () => {
             tags.value = res.data.tags;
             article.value = { ...res.data };
         }
-        // console.log(article.value.title)
     } catch (err) {
         error.value = "无法加载文章详情";
     } finally {
@@ -87,6 +95,6 @@ onMounted(() => {
 
 watchEffect(() => {
     if (!articleId.value) return;
-    else loadArticle();
+    loadArticle();
 });
 </script>

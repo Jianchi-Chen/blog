@@ -28,6 +28,7 @@ impl From<ArticleModel> for NewArticle {
             id: Some(v.id),
             title: v.title,
             content: v.content,
+            summary: v.summary,
             status: v.status,
             tags: v.tags,
         }
@@ -38,6 +39,7 @@ impl From<ArticleModel> for NewArticle {
 pub struct PubArticles {
     pub id: String,
     pub title: String,
+    pub summary: String,
     pub created_at: String,
     pub status: String,
     pub views: i32,
@@ -53,7 +55,7 @@ pub async fn get_articles(
         sqlx::query_as::<_, PubArticles>(
             // r#"..."# Rust原始字符串(raw string)语法，被包裹内容不会被转义
             r#"
-            SELECT id, title, created_at, status, views, tags FROM articles
+            SELECT id, title, summary, created_at, status, views, tags FROM articles
             "#,
         )
         .fetch_all(pool) //执行语句
@@ -65,7 +67,7 @@ pub async fn get_articles(
         sqlx::query_as::<_, PubArticles>(
             // r#"..."# Rust原始字符串(raw string)语法，被包裹内容不会被转义
             r#"
-            SELECT id, title, created_at, status, views, tags FROM articles
+            SELECT id, title, summary, created_at, status, views, tags FROM articles
             WHERE status = ?
             "#,
         )
@@ -104,13 +106,14 @@ pub async fn post_article(
     let _ = sqlx::query(
         // r#"..."# Rust原始字符串(raw string)语法，被包裹内容不会被转义
         r#"
-        INSERT INTO articles (id, title, content, created_at, status, tags)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO articles (id, title, content, summary, created_at, status, tags)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(&id) // 需要uuid的feature
     .bind(&new.title)
     .bind(&new.content)
+    .bind(&new.summary)
     .bind(create_at)
     .bind(status)
     .bind(&new.tags) // Option类型数据库会自己处理空值逻辑，没有的话就存NULL
@@ -170,6 +173,7 @@ pub async fn put_article_by_id(
             UPDATE articles
             SET title = ?,
                 content = ?,
+                summary = ?,
                 update_at = ?,
                 tags = ?,
                 status = ?
@@ -177,6 +181,7 @@ pub async fn put_article_by_id(
     "#,
         new.title,
         new.content,
+        new.summary,
         update_at,
         new.tags,
         "draft",

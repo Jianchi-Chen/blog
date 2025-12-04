@@ -31,6 +31,7 @@ pub struct NewArticle {
     pub id: Option<String>,
     pub title: Option<String>,
     pub content: Option<String>,
+    pub summary: Option<String>,
     pub status: Option<String>,
     pub tags: Option<String>,
 }
