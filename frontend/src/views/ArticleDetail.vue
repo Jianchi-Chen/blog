@@ -1,6 +1,9 @@
 <template>
-    <n-flex size="small" style="width: 100%;">
-        <n-text v-if="loading" class="text-gray-500">加载中</n-text>
+    <n-flex size="small" style="width: 100%">
+        <n-text v-if="loading" class="text-gray-500">
+            <n-skeleton text :repeat="2" />
+            <n-skeleton text style="width: 60%" />
+        </n-text>
         <n-text v-else-if="error" class="text-red-500">{{ error }}</n-text>
 
         <n-text v-else class="w-[90%]">
@@ -23,23 +26,35 @@
                 <CommentSection />
             </div>
         </n-text>
-
-
-
     </n-flex>
-
-
 </template>
 
 <script setup lang="ts">
-import { fetchArticleById } from '@/api/article';
-import CommentSection from '@/components/CommentSection.vue';
-import MdPreview from '@/components/MdPreview.vue';
-import { ArticleSchema, createEmptyArticle, type Article } from '@/types/article';
-import { computed, onMounted, ref, watchEffect, type Ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { NCard, NFlex, useMessage, NH1, NText, NH2, NH3, NP, NLayout, NHr, NDynamicTags, NTag } from 'naive-ui';
-import { ArrowUpCircle } from '@vicons/ionicons5'
+import { fetchArticleById } from "@/api/article";
+import CommentSection from "@/components/CommentSection.vue";
+import MdPreview from "@/components/MdPreview.vue";
+import {
+    ArticleSchema,
+    createEmptyArticle,
+    type Article,
+} from "@/types/article";
+import { computed, onMounted, ref, watchEffect, type Ref } from "vue";
+import { useRoute } from "vue-router";
+import {
+    NCard,
+    NFlex,
+    useMessage,
+    NH1,
+    NText,
+    NH2,
+    NH3,
+    NP,
+    NLayout,
+    NHr,
+    NDynamicTags,
+    NTag,
+} from "naive-ui";
+import { ArrowUpCircle } from "@vicons/ionicons5";
 
 const route = useRoute();
 const articleId = computed(() => route.params.id as string);
@@ -47,7 +62,7 @@ const articleId = computed(() => route.params.id as string);
 // 和articles的常量数组article不同，这里的acticle是一个变量
 const article: Ref<Article> = ref(createEmptyArticle());
 const loading = ref(false);
-const error = ref('');
+const error = ref("");
 const tags: Ref<Article["tags"]> = ref("");
 
 const loadArticle = async () => {
@@ -55,7 +70,7 @@ const loadArticle = async () => {
     try {
         const res = await fetchArticleById(articleId.value);
         if (res.data) {
-            tags.value = res.data.tags
+            tags.value = res.data.tags;
             article.value = { ...res.data };
         }
         // console.log(article.value.title)
@@ -64,17 +79,14 @@ const loadArticle = async () => {
     } finally {
         loading.value = false;
     }
-}
-
-
+};
 
 onMounted(() => {
     loadArticle();
-})
+});
 
 watchEffect(() => {
-    if (!articleId.value) return
-    else loadArticle()
-})
-
+    if (!articleId.value) return;
+    else loadArticle();
+});
 </script>

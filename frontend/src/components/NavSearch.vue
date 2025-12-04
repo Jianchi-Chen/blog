@@ -8,7 +8,7 @@
             style="font-size: 20px"
         >
             <n-icon size="33">
-                <SearchCircle />
+                <SearchCircleOutline />
             </n-icon>
         </n-button>
 
@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import { h, onMounted, ref, render, type Ref } from "vue";
 import { NButton, NInput, NIcon } from "naive-ui";
-import { SearchCircle } from "@vicons/ionicons5";
+import { SearchCircleOutline } from "@vicons/ionicons5";
 import { debounce } from "lodash-es";
 import { useRouter } from "vue-router";
 import { fetchSuggestions } from "@/api/article";

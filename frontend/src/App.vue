@@ -34,7 +34,7 @@ const toggleTheme = () => {
 </script>
 
 <template>
-    <!-- 整个 Naive UI 的全局配置上下文，例如主题、语言、图标等 -->
+    <!-- 整个 Naive UI 的全局配置上下文,例如主题、语言、图标等 -->
     <n-config-provider :theme="theme">
         <!-- 模态框 -->
         <n-modal-provider>
@@ -71,17 +71,6 @@ const toggleTheme = () => {
                                     :bottom="140"
                                     :visibility-height="300"
                                 >
-                                    <!-- <div
-                                        style="
-                                            width: 160px;
-                                            height: 40px;
-                                            line-height: 40px;
-                                            text-align: center;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        BackToTop
-                                    </div> -->
                                     <n-icon-wrapper
                                         :size="45"
                                         :border-radius="18"

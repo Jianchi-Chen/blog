@@ -28,19 +28,23 @@ export const useUserStore = defineStore("user", {
             this.identity = user.identity;
             localStorage.setItem("token", token);
             localStorage.setItem("username", user.username);
+            localStorage.setItem("identity", user.identity);
         },
 
         logout() {
             this.token = "";
             this.username = "";
+            this.identity = "";
             this.id = "";
             localStorage.removeItem("token");
             localStorage.removeItem("username");
+            localStorage.removeItem("identity");
         },
 
         initFromStorage() {
             this.token = localStorage.getItem("token") || "";
             this.username = localStorage.getItem("username") || "";
+            this.identity = localStorage.getItem("identity") || "";
         },
 
         // 判断当前用户是否是管理员

@@ -8,16 +8,22 @@
                 @click="handlerFolderExpand"
             >
                 <n-icon size="27">
-                    <FolderOpen />
+                    <FolderOpenOutline />
                 </n-icon>
             </n-button>
             <n-switch @click="submitToggleTheme">
                 <template #checked> Dark </template>
                 <template #unchecked> Light </template>
             </n-switch>
-            <!-- 把搜索组件放在菜单最右侧 -->
+            <!-- 搜索框 -->
             <NavSearch @search="onSearch" />
         </n-flex>
+
+        <n-time
+            time-zone="Asia/Shanghai"
+            format="yyyy-MM-dd hh:mm"
+            style="font-weight: bold"
+        />
 
         <n-flex>
             <n-menu
@@ -32,13 +38,13 @@
 </template>
 
 <script setup lang="ts">
-import { NIcon, useMessage } from "naive-ui";
+import { NAvatar, NIcon, useMessage } from "naive-ui";
 import { NMenu } from "naive-ui";
 import { useUserStore } from "@/stores/user";
 import { computed, h, ref } from "vue";
 import { useRouter } from "vue-router";
 import NavSearch from "@/components/NavSearch.vue";
-import { FolderOpen } from "@vicons/ionicons5";
+import { FolderOpenOutline } from "@vicons/ionicons5";
 import { useArticleStore } from "@/stores/article";
 import {
     HomeOutline,
@@ -81,33 +87,55 @@ const menuOptions = computed(() => {
         },
     ];
 
-    // 基于登录状态, 显示导航内容
-    if (isLoggedin.value && userstore.isAdmin()) {
+    if (isLoggedin.value) {
+        // 根据身份设定颜色
+        const username = userstore.username || "G";
+        const firstLetter = username.charAt(0).toUpperCase();
+
+        let bg = "";
+        let color = "white";
+
+        if (userstore.isAdmin()) {
+            bg = "red"; // 管理员：红底黄字
+            color = "yellow";
+        } else if (userstore.identity == "user") {
+            bg = "green"; // 普通用户：绿底白字
+            color = "white";
+        } else {
+            bg = "yellow"; // 游客：黄底黑字
+            color = "black";
+        }
+
         items.push({
-            label: "后台管理",
-            key: "/admin",
-            icon: render(SettingsOutline),
+            label: `当前用户: ${username}`,
+            key: "username",
+            icon: () =>
+                h(
+                    NAvatar,
+                    {
+                        style: {
+                            backgroundColor: bg,
+                            color: color,
+                            fontWeight: "bold",
+                        },
+                        size: 28,
+                    },
+                    { default: () => firstLetter }
+                ),
         });
+
+        if (userstore.isAdmin()) {
+            items.push({
+                label: "后台管理",
+                key: "/admin",
+                icon: render(SettingsOutline),
+            });
+        }
+
         items.push({
             label: "退出",
             key: "logout",
             icon: render(LogOutOutline),
-        });
-        items.push({
-            label: `当前用户: ${userstore.username}`,
-            key: "username",
-            icon: render(PersonOutline),
-        });
-    } else if (isLoggedin.value) {
-        items.push({
-            label: "退出",
-            key: "logout",
-            icon: render(LogOutOutline),
-        });
-        items.push({
-            label: `当前用户: ${userstore.username}`,
-            key: "username",
-            icon: render(PersonOutline),
         });
     } else {
         items.push({
@@ -119,6 +147,7 @@ const menuOptions = computed(() => {
 
     return items;
 });
+
 const handleSelect = (key: string) => {
     if (key == "logout") {
         userstore.logout();
@@ -131,9 +160,9 @@ const handleSelect = (key: string) => {
 };
 
 // 添加图片函数
-function render(icon: any) {
+const render = (icon: any) => {
     return () => h(NIcon, null, { default: () => h(icon) });
-}
+};
 
 // 控制侧边导航栏展开与否
 const handlerFolderExpand = () => {
