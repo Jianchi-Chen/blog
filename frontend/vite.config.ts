@@ -40,10 +40,14 @@ export default defineConfig({
     // 避免 Vite 在构建时错误地处理 Naive UI 的某些模块。
     optimizeDeps: {
         exclude: ["naive-ui"],
+        include: ["@vicons/ionicons5", "@vicons/material", "@vicons/carbon"],
     },
     build: {
         commonjsOptions: {
             include: [/node_modules/],
+        },
+        rollupOptions: {
+            maxParallelFileOps: 20, // 限制并发文件操作数，解决 EMFILE 错误
         },
     },
 
