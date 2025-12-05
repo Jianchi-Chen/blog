@@ -269,7 +269,17 @@ const removeTag = (tag: string) => {
 // 格式化日期
 const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
-    const date = new Date(dateStr);
+
+    // 处理 "2025::11::25" 格式，将 :: 替换为 -
+    const normalizedDate = dateStr.replace(/::/g, "-");
+
+    const date = new Date(normalizedDate);
+
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+        return dateStr; // 如果无法解析，返回原始字符串
+    }
+
     return date.toLocaleDateString("zh-CN", {
         year: "numeric",
         month: "long",

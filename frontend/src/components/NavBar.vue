@@ -1,5 +1,5 @@
 <template>
-    <n-flex justify="space-between" align="center">
+    <n-flex justify="space-between" align="center" style="position: relative">
         <n-flex align="center">
             <n-button
                 :focusable="false"
@@ -22,7 +22,12 @@
         <n-time
             time-zone="Asia/Shanghai"
             format="yyyy-MM-dd hh:mm"
-            style="font-weight: bold"
+            style="
+                font-weight: bold;
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+            "
         />
 
         <n-flex>

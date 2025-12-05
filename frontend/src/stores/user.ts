@@ -26,7 +26,9 @@ export const useUserStore = defineStore("user", {
             this.token = token;
             this.username = user.username;
             this.identity = user.identity;
+            this.id = user.id;
             localStorage.setItem("token", token);
+            localStorage.setItem("id", user.id);
             localStorage.setItem("username", user.username);
             localStorage.setItem("identity", user.identity);
         },
@@ -39,12 +41,14 @@ export const useUserStore = defineStore("user", {
             localStorage.removeItem("token");
             localStorage.removeItem("username");
             localStorage.removeItem("identity");
+            localStorage.removeItem("id");
         },
 
         initFromStorage() {
             this.token = localStorage.getItem("token") || "";
             this.username = localStorage.getItem("username") || "";
             this.identity = localStorage.getItem("identity") || "";
+            this.id = localStorage.getItem("id") || "";
         },
 
         // 判断当前用户是否是管理员
