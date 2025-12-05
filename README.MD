@@ -4,8 +4,8 @@
 
 ## 项目结构
 
--   **frontend/**: 使用 Vue 3、TypeScript、Naive UI 和 Tailwind CSS 构建的前端应用
--   **backend/**: 使用 Rust (Axum) 和 SQLite3 构建的后端 API
+-   **frontend**: 使用 Vue 3、TypeScript、Naive UI 和 Tailwind CSS 构建的前端应用
+-   **backend**: 使用 Rust (Axum) 和 SQLite3 构建的后端 API
 
 ## 技术栈
 
@@ -35,7 +35,8 @@ npm run dev
 
 ```bash
 cd backend
-cargo run
+cargo run (开发环境)
+.\target\release\backend.exe (生产环境)
 ```
 
 ## 说明
