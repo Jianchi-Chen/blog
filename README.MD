@@ -1,62 +1,47 @@
-# Blog
+# 博客
 
-A practice blog project built with Vue3 and Rust.
+一个使用 Vue3 和 Rust 构建的练习博客项目。
 
-## Project Structure
+## 项目结构
 
--   **frontend/**: Frontend application built with Vue 3, TypeScript, Naive UI, and Tailwind CSS
--   **backend/**: Backend API built with Rust (Axum) and SQLite3
+-   **frontend/**: 使用 Vue 3、TypeScript、Naive UI 和 Tailwind CSS 构建的前端应用
+-   **backend/**: 使用 Rust (Axum) 和 SQLite3 构建的后端 API
 
-## Tech Stack
+## 技术栈
 
-### Frontend
+### 前端
 
 -   Vue 3
 -   TypeScript
 -   Naive UI
 -   Tailwind CSS
 
-### Backend
+### 后端
 
--   Rust (Axum framework)
+-   Rust (Axum 框架)
 -   SQLite3
 
-## Installation
+## 运行项目
 
-### Frontend
+### 前端
 
 ```bash
 cd frontend
 npm install
-```
-
-### Backend
-
-```bash
-cd backend
-cargo build
-```
-
-## Running the Project
-
-### Frontend
-
-```bash
-cd frontend
 npm run dev
 ```
 
-### Backend
+### 后端
 
 ```bash
 cd backend
 cargo run
 ```
 
-## Note
+## 说明
 
-This is a practice project for learning purposes. It is not intended for deployment and will be updated casually in the future.
+这是一个用于学习目的的练习项目。不打算部署到生产环境，有建议欢迎探讨。
 
-## License
+## 许可证
 
-No license currently.
+暂无许可证。
