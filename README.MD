@@ -35,8 +35,12 @@ npm run dev
 
 ```bash
 cd backend
-cargo run (开发环境)
-.\target\release\backend.exe (生产环境)
+# 开发环境
+cargo run
+
+# 生产环境
+cargo build --release
+.\target\release\backend.exe
 ```
 
 ## 说明
