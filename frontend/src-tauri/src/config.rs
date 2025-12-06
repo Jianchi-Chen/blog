@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use tauri::AppHandle;
 
+#[cfg(not(debug_assertions))]
+use tauri::Manager;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
     pub database_url: String,
@@ -18,7 +21,8 @@ pub struct Config {
 
 impl Config {
     /// 加载配置：开发模式使用环境变量，生产模式使用持久化配置
-    pub fn load(_app_handle: Option<&AppHandle>) -> Result<Self, Box<dyn std::error::Error>> {
+    #[allow(unused_variables)]
+    pub fn load(app_handle: Option<&AppHandle>) -> Result<Self, Box<dyn std::error::Error>> {
         #[cfg(debug_assertions)]
         {
             // 开发模式：从 .env 加载
@@ -99,7 +103,8 @@ impl Config {
     }
 
     /// 获取数据库路径（开发环境使用相对路径，生产环境使用 app data 路径）
-    pub fn get_database_path(&self, _app_handle: Option<&AppHandle>) -> String {
+    #[allow(unused_variables)]
+    pub fn get_database_path(&self, app_handle: Option<&AppHandle>) -> String {
         #[cfg(debug_assertions)]
         {
             // 开发模式：直接使用配置中的路径
