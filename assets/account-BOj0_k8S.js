@@ -1,1 +1,0 @@
-import{T as e}from"./index-D88i5dwZ.js";const s=t=>e.post("/api/register",t),n=t=>e.post("/api/login",t),o=t=>e.get("/api/users",{params:{limit:t}}),c=t=>e.delete(`/api/users/${t}`),a=t=>e.put("/api/editAccount",t);export{a as E,c as d,o as f,n as l,s as r};
