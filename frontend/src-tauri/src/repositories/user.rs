@@ -1,29 +1,35 @@
-//! User 模型与持久化操作（Repository）
-//! 说明：将数据访问与业务/路由解耦，便于测试与复用。
+//! User Repository - 用户数据访问层
 
+use serde::Deserialize;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
-use crate::models::user::{AdminEditAccountPayload, NewUser, User, UserPublic};
+use crate::models::user::{NewUser, User, UserPublic};
+
+#[derive(Deserialize, Debug)]
+pub struct AdminEditAccountPayload {
+    pub edited_id: String,
+    pub edited_username: Option<String>,
+    pub edited_password: Option<String>,
+    pub edited_identity: Option<String>,
+}
 
 /// 新增用户
 pub async fn insert_common_user(pool: &SqlitePool, new: &NewUser) -> Result<User, sqlx::Error> {
-    let id = Uuid::now_v7().to_string(); // 相比new(), now()可以调用当前时间
-                                         // query_as 是 sqlx 的宏：它在 编译期 检查 SQL 语法，并把结果行直接 按列名映射 到你指定的结构体 User。
-                                         // 第一个类型参数 _ 让编译器推断数据库驱动（这里是 SQLite，只有一种数据库的话可以自己推导）；第二个 User 指定目标结构体。
+    let id = Uuid::now_v7().to_string();
+    
     sqlx::query_as::<_, User>(
-        // r#"..."# Rust原始字符串(raw string)语法，被包裹内容不会被转义
         r#"
         INSERT INTO users (id, username, password, identity)
         VALUES (?, ?, ?, ?)
         RETURNING id, username, password, identity
         "#,
     )
-    .bind(&id) // 需要uuid的feature
+    .bind(&id)
     .bind(&new.username)
     .bind(&new.password)
     .bind(&new.identity)
-    .fetch_one(pool) //执行语句，并 等待一行结果
+    .fetch_one(pool)
     .await
 }
 
@@ -36,7 +42,7 @@ pub async fn find_user_by_username(
         r#"SELECT id, username, password, identity FROM users WHERE username = ? LIMIT 1"#,
     )
     .bind(username)
-    .fetch_optional(pool) // 执行语句，允许一行或零行
+    .fetch_optional(pool)
     .await
 }
 
@@ -86,13 +92,13 @@ pub async fn edit_user_account(
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-            UPDATE users
-            SET
+        UPDATE users
+        SET
             username = COALESCE($1, username),
             password = COALESCE($2, password),
             identity = COALESCE($3, identity)
-            WHERE id = $4
-    "#,
+        WHERE id = $4
+        "#,
         new_data.edited_username,
         new_data.edited_password,
         new_data.edited_identity,
@@ -102,4 +108,16 @@ pub async fn edit_user_account(
     .await?;
 
     Ok(())
+}
+
+/// 通过 ID 获取用户身份
+pub async fn get_ident_by_id(pool: &SqlitePool, user_id: &str) -> Result<String, sqlx::Error> {
+    let user = sqlx::query!(
+        r#"SELECT identity FROM users WHERE id = ?"#,
+        user_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(user.identity.unwrap_or_default())
 }

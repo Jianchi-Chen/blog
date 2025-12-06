@@ -2,20 +2,15 @@
 
 use crate::auth::{decode_token, hash_password};
 use crate::config::Config;
-use crate::models::user::{AdminEditAccountPayload, UserPublic};
-use crate::repositories::user::{delete_user_by_id, edit_user_account, list_users};
-use serde::{Deserialize, Serialize};
+use crate::models::user::UserPublic;
+use crate::repositories::user::{delete_user_by_id, edit_user_account, get_ident_by_id, list_users, AdminEditAccountPayload};
+use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::State;
 
 #[derive(Serialize)]
 pub struct ListUsersResponse {
     users: Vec<UserPublic>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct UsersQuery {
-    pub limit: Option<i32>,
 }
 
 /// 获取用户列表（需要管理员权限）
@@ -27,15 +22,16 @@ pub async fn get_users(
     config: State<'_, Config>,
 ) -> Result<ListUsersResponse, String> {
     // 验证 token
-    let _claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
+    let claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
 
-    // 检查用户身份（需要 get_ident_by_id 函数，这里先注释）
-    // let identity = get_ident_by_id(pool.inner(), &claims.user_id)
-    //     .await
-    //     .map_err(|e| format!("Database error: {}", e))?;
-    // if identity != "admin" {
-    //     return Err("Only admin can view users".to_string());
-    // }
+    // 检查用户身份
+    let identity = get_ident_by_id(pool.inner(), &claims.user_id)
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    
+    if identity != "admin" {
+        return Err("Only admin can view users".to_string());
+    }
 
     let default_limit = limit.unwrap_or(10);
     let users = list_users(pool.inner(), default_limit)
@@ -54,15 +50,16 @@ pub async fn delete_user(
     config: State<'_, Config>,
 ) -> Result<(), String> {
     // 验证 token
-    let _claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
+    let claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
 
-    // 检查用户身份（需要 get_ident_by_id 函数，这里先注释）
-    // let identity = get_ident_by_id(pool.inner(), &claims.user_id)
-    //     .await
-    //     .map_err(|e| format!("Database error: {}", e))?;
-    // if identity != "admin" {
-    //     return Err("Only admin can delete users".to_string());
-    // }
+    // 检查用户身份
+    let identity = get_ident_by_id(pool.inner(), &claims.user_id)
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    
+    if identity != "admin" {
+        return Err("Only admin can delete users".to_string());
+    }
 
     delete_user_by_id(pool.inner(), &user_id)
         .await
@@ -80,20 +77,16 @@ pub async fn edit_account(
     config: State<'_, Config>,
 ) -> Result<(), String> {
     // 验证 token
-    let _claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
+    let claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
 
-    // 验证 current_token 字段
-    if payload.current_token.is_none() {
-        return Err("current_token is required".to_string());
+    // 检查用户身份
+    let identity = get_ident_by_id(pool.inner(), &claims.user_id)
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    
+    if identity != "admin" {
+        return Err("Only admin can edit user accounts".to_string());
     }
-
-    // 检查用户身份（需要 get_ident_by_id 函数，这里先注释）
-    // let identity = get_ident_by_id(pool.inner(), &claims.user_id)
-    //     .await
-    //     .map_err(|e| format!("Database error: {}", e))?;
-    // if identity != "admin" {
-    //     return Err("Only admin can edit user accounts".to_string());
-    // }
 
     // 防止更改超管的权限
     if payload.edited_identity.as_ref().map(|s| s.as_str()) == Some("admin")
@@ -105,7 +98,10 @@ pub async fn edit_account(
     // 将传递的密码转为 hash
     let new_password = if let Some(ref password) = payload.edited_password {
         if !password.is_empty() {
-            Some(hash_password(password).map_err(|e| format!("Failed to hash password: {}", e))?)
+            Some(
+                hash_password(password)
+                    .map_err(|e| format!("Failed to hash password: {}", e))?,
+            )
         } else {
             None
         }
@@ -114,7 +110,6 @@ pub async fn edit_account(
     };
 
     let updated_payload = AdminEditAccountPayload {
-        current_token: payload.current_token,
         edited_id: payload.edited_id,
         edited_username: payload.edited_username,
         edited_password: new_password,

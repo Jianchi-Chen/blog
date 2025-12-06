@@ -2,7 +2,7 @@
 //! 处理来自前端的 HTTP 请求，自动携带 token 进行鉴权
 
 use crate::config::Config;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
 use tauri::State;
@@ -15,12 +15,6 @@ pub struct HttpRequest {
     pub token: Option<String>,
     pub params: Option<HashMap<String, String>>,
     pub data: Option<Value>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct HttpResponse<T> {
-    pub data: T,
-    pub status: u16,
 }
 
 /// 处理 HTTP 请求的 Tauri command

@@ -1,10 +1,11 @@
+//! Tauri 应用库入口
+
 pub mod auth;
 pub mod commands;
 pub mod config;
 pub mod db;
 pub mod models;
 pub mod repositories;
-pub mod services;
 
 use config::Config;
 use db::{new_pool, run_migrations};
@@ -48,14 +49,31 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // 通用命令
+            // HTTP 请求代理
             commands::http_request,
+            // 认证
+            commands::login,
+            commands::register,
+            commands::verify_token,
+            commands::get_current_user,
             // 用户管理
             commands::get_users,
             commands::delete_user,
             commands::edit_account,
-            // 文章管理
-            // 评论管理
+            // 文章
+            commands::get_articles,
+            commands::get_article_by_id,
+            commands::create_article,
+            commands::update_article,
+            commands::delete_article,
+            commands::toggle_article_status,
+            // 评论
+            commands::get_comments,
+            commands::post_comment,
+            commands::delete_comment,
+            commands::like_comment,
+            // 搜索
+            commands::get_suggestions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

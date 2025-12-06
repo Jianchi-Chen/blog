@@ -1,15 +1,38 @@
-use crate::models::article::{ArticleModel, GetArticlesParams, NewArticle, NewStatus, PubArticles};
-use anyhow::Result;
+//! Article Repository - 文章数据访问层
+
 use chrono::Local;
-use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use uuid::Uuid;
+
+use crate::models::article::{ArticleModel, PubArticles};
+
+#[derive(Deserialize, Debug)]
+pub struct GetArticlesParams {
+    pub identity: String,
+    pub condition: Option<String>,
+}
+
+#[derive(Deserialize, Clone, Serialize)]
+pub struct NewArticle {
+    pub id: Option<String>,
+    pub title: Option<String>,
+    pub content: Option<String>,
+    pub summary: Option<String>,
+    pub status: Option<String>,
+    pub tags: Option<String>,
+}
+
+#[derive(Deserialize, Clone, Serialize, Debug)]
+pub struct NewStatus {
+    pub toggle: String,
+}
 
 /// 获取文章列表
 pub async fn get_articles(
     pool: &SqlitePool,
     params: GetArticlesParams,
-) -> Result<Vec<PubArticles>> {
+) -> Result<Vec<PubArticles>, sqlx::Error> {
     let rows = if params.identity == "admin" {
         sqlx::query_as::<_, PubArticles>(
             r#"
@@ -17,10 +40,7 @@ pub async fn get_articles(
             "#,
         )
         .fetch_all(pool)
-        .await
-        .inspect_err(|e| {
-            eprintln!("DB error: {:?}", e);
-        })?
+        .await?
     } else {
         sqlx::query_as::<_, PubArticles>(
             r#"
@@ -28,15 +48,12 @@ pub async fn get_articles(
             WHERE status = ?
             "#,
         )
-        .bind("published") // 需要uuid的feature
+        .bind("published")
         .fetch_all(pool)
-        .await
-        .inspect_err(|e| {
-            eprintln!("DB error: {:?}", e);
-        })?
+        .await?
     };
 
-    // 再进行一次关键词搜索
+    // 关键词搜索
     if let Some(keyword) = params.condition {
         let filtered_rows: Vec<PubArticles> = rows
             .into_iter()
@@ -49,68 +66,55 @@ pub async fn get_articles(
 }
 
 /// 新增文章
-pub async fn post_article(pool: &SqlitePool, new: &NewArticle) -> Result<ArticleModel> {
+pub async fn post_article(
+    pool: &SqlitePool,
+    new: &NewArticle,
+) -> Result<ArticleModel, sqlx::Error> {
     let id = Uuid::now_v7().to_string();
     let now = Local::now();
     let create_at = now.format("%Y::%m::%d").to_string();
     let status = "draft".to_string();
 
-    sqlx::query!(
+    sqlx::query(
         r#"
         INSERT INTO articles (id, title, content, summary, created_at, status, tags)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         "#,
-        id,
-        new.title,
-        new.content,
-        new.summary,
-        create_at,
-        status,
-        new.tags
     )
-    .execute(pool) //执行语句，并 等待一行结果
-    .await
-    .map_err(|e| {
-        eprintln!("DB error: {:?}", e);
-        anyhow::anyhow!(e)
-    })?;
+    .bind(&id)
+    .bind(&new.title)
+    .bind(&new.content)
+    .bind(&new.summary)
+    .bind(create_at)
+    .bind(status)
+    .bind(&new.tags)
+    .execute(pool)
+    .await?;
 
     sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
-        .bind(id)
+        .bind(&id)
         .fetch_one(pool)
         .await
-        .map_err(|e| {
-            eprintln!("DB error: {:?}", e);
-            anyhow::anyhow!(e)
-        })
 }
 
-// 一般函数能给&str给&str，需要所有权时才给String
 /// 查找文章
-pub async fn find_article_by_id(pool: &SqlitePool, id: &str) -> Result<Option<ArticleModel>> {
-    sqlx::query_as::<_, ArticleModel>(r#"select * from articles where id = ?"#)
+pub async fn find_article_by_id(
+    pool: &SqlitePool,
+    id: &str,
+) -> Result<Option<ArticleModel>, sqlx::Error> {
+    sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
         .bind(id)
         .fetch_optional(pool)
         .await
-        .map_err(|e| {
-            eprintln!("DB error: {:?}", e);
-            e.into()
-        })
 }
 
 /// 删除文章
-pub async fn delete_article_by_id(pool: &SqlitePool, id: &str) -> Result<StatusCode> {
-    // 使用query / execute 代替 query_as::<> / fetch_*
-    let res = sqlx::query(r#"DELETE FROM articles where id = ?"#)
+pub async fn delete_article_by_id(pool: &SqlitePool, id: &str) -> Result<(), sqlx::Error> {
+    sqlx::query(r#"DELETE FROM articles WHERE id = ?"#)
         .bind(id)
         .execute(pool)
         .await?;
-
-    if res.rows_affected() == 0 {
-        return Err(anyhow::anyhow!("未找到对应文章"));
-    }
-
-    Ok(StatusCode::NO_CONTENT)
+    Ok(())
 }
 
 /// 修改文章
@@ -118,44 +122,36 @@ pub async fn put_article_by_id(
     pool: &SqlitePool,
     id: &str,
     new: NewArticle,
-) -> Result<ArticleModel> {
+) -> Result<ArticleModel, sqlx::Error> {
     let now = Local::now();
     let update_at = now.format("%Y::%m::%d").to_string();
 
-    // 不带宏是运行期再检查
-    // 使用宏是编译期检查
-    let _ = sqlx::query!(
+    sqlx::query(
         r#"
-            UPDATE articles
-            SET title = ?,
-                content = ?,
-                summary = ?,
-                update_at = ?,
-                tags = ?,
-                status = ?
-            WHERE id = ?
-    "#,
-        new.title,
-        new.content,
-        new.summary,
-        update_at,
-        new.tags,
-        "draft",
-        id
+        UPDATE articles
+        SET title = ?,
+            content = ?,
+            summary = ?,
+            update_at = ?,
+            tags = ?,
+            status = ?
+        WHERE id = ?
+        "#,
     )
+    .bind(&new.title)
+    .bind(&new.content)
+    .bind(&new.summary)
+    .bind(&update_at)
+    .bind(&new.tags)
+    .bind("draft")
+    .bind(id)
     .execute(pool)
     .await?;
 
-    Ok(
-        sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
-            .bind(id)
-            .fetch_one(pool)
-            .await
-            .map_err(|e| {
-                eprintln!("DB select error: {:?}", e);
-                e
-            })?,
-    )
+    sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
+        .bind(id)
+        .fetch_one(pool)
+        .await
 }
 
 /// 更变文章状态
@@ -163,8 +159,8 @@ pub async fn patch_article_by_id(
     pool: &SqlitePool,
     id: &str,
     new: NewStatus,
-) -> Result<ArticleModel> {
-    let _ = sqlx::query(
+) -> Result<ArticleModel, sqlx::Error> {
+    sqlx::query(
         r#"
         UPDATE articles SET status = ?
         WHERE id = ?
@@ -173,20 +169,10 @@ pub async fn patch_article_by_id(
     .bind(&new.toggle)
     .bind(id)
     .execute(pool)
-    .await
-    .map_err(|e| {
-        eprintln!("DB update error: {:?}", e);
-        e
-    })?;
+    .await?;
 
-    Ok(
-        sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
-            .bind(id)
-            .fetch_one(pool)
-            .await
-            .map_err(|e| {
-                eprintln!("DB select error: {:?}", e);
-                e
-            })?,
-    )
+    sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
+        .bind(id)
+        .fetch_one(pool)
+        .await
 }

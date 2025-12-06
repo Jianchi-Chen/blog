@@ -1,11 +1,10 @@
-//! 统一配置中心:开发时从 .env 读取，生产时使用持久化配置 + 默认值。
+//! 统一配置中心：
+//! - 开发环境：从 .env 文件加载配置
+//! - 生产环境（Tauri）：从应用数据目录的 config.json 加载/创建配置
 
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::env;
-use std::fs;
-use std::path::PathBuf;
-use tauri::Manager;
+use tauri::AppHandle;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -18,42 +17,24 @@ pub struct Config {
 }
 
 impl Config {
-    /// 加载配置：开发时读 .env，生产时读持久化配置文件
-    #[allow(unused_variables)]
-    pub fn load(app_handle: Option<&tauri::AppHandle>) -> Result<Self> {
-        // 开发模式：从 .env 读取
+    /// 加载配置：开发模式使用环境变量，生产模式使用持久化配置
+    pub fn load(_app_handle: Option<&AppHandle>) -> Result<Self, Box<dyn std::error::Error>> {
         #[cfg(debug_assertions)]
         {
-            dotenvy::dotenv().ok();
-            return Ok(Self::from_env());
+            // 开发模式：从 .env 加载
+            Ok(Self::from_env())
         }
 
-        // 生产模式：从应用数据目录读取配置文件
         #[cfg(not(debug_assertions))]
         {
-            if let Some(handle) = app_handle {
-                let config_path = Self::get_config_path(handle)?;
-
-                // 如果配置文件存在，读取它
-                if config_path.exists() {
-                    let content = fs::read_to_string(&config_path)?;
-                    let config: Config = serde_json::from_str(&content)?;
-                    return Ok(config);
-                }
-
-                // 否则创建新配置并保存
-                let config = Self::default();
-                config.save(handle)?;
-                return Ok(config);
-            }
-
-            // 如果没有 app_handle，返回默认配置
-            Ok(Self::default())
+            // 生产模式：从 app data 加载或创建
+            let app = app_handle.ok_or("AppHandle required in production mode")?;
+            Self::from_app_data(app)
         }
     }
 
-    /// 从环境变量读取配置（开发时使用）
-    fn from_env() -> Self {
+    /// 从环境变量加载（开发模式）
+    pub fn from_env() -> Self {
         Self {
             database_url: env::var("DATABASE_URL").unwrap_or_else(|_| "./app.db".into()),
             host: env::var("HOST").unwrap_or_else(|_| "127.0.0.1".into()),
@@ -69,54 +50,72 @@ impl Config {
         }
     }
 
-    /// 保存配置到应用数据目录
-    pub fn save(&self, app_handle: &tauri::AppHandle) -> Result<()> {
-        let config_path = Self::get_config_path(app_handle)?;
-
-        // 确保父目录存在
-        if let Some(parent) = config_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        let content = serde_json::to_string_pretty(self)?;
-        fs::write(&config_path, content)?;
-        Ok(())
-    }
-
-    /// 获取配置文件路径
-    fn get_config_path(app_handle: &tauri::AppHandle) -> Result<PathBuf> {
-        let app_data_dir = app_handle
+    /// 从应用数据目录加载或创建配置（生产模式）
+    #[cfg(not(debug_assertions))]
+    fn from_app_data(app: &AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
+        let app_data_dir = app
             .path()
             .app_data_dir()
-            .map_err(|e| anyhow::anyhow!("Failed to get app data dir: {}", e))?;
-        Ok(app_data_dir.join("config.json"))
+            .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
+        std::fs::create_dir_all(&app_data_dir)?;
+
+        let config_path = app_data_dir.join("config.json");
+
+        if config_path.exists() {
+            // 读取现有配置
+            let config_str = std::fs::read_to_string(&config_path)?;
+            Ok(serde_json::from_str(&config_str)?)
+        } else {
+            // 创建默认配置
+            let config = Self {
+                database_url: "app.db".into(), // 相对路径，稍后会转换为绝对路径
+                host: "127.0.0.1".into(),
+                port: 3000,
+                jwt_secret: Self::generate_random_secret(),
+                jwt_ttl: 7 * 24 * 3600,
+            };
+
+            // 保存配置
+            let config_str = serde_json::to_string_pretty(&config)?;
+            std::fs::write(&config_path, config_str)?;
+
+            Ok(config)
+        }
     }
 
-    /// 获取数据库路径（生产环境下使用应用数据目录）
-    #[allow(unused_variables)]
-    pub fn get_database_path(&self, app_handle: Option<&tauri::AppHandle>) -> String {
-        #[cfg(not(debug_assertions))]
+    /// 生成随机 JWT secret
+    #[allow(dead_code)]
+    fn generate_random_secret() -> String {
+        use rand::Rng;
+        const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let mut rng = rand::thread_rng();
+        (0..32)
+            .map(|_| {
+                let idx = rng.gen_range(0..CHARSET.len());
+                CHARSET[idx] as char
+            })
+            .collect()
+    }
+
+    /// 获取数据库路径（开发环境使用相对路径，生产环境使用 app data 路径）
+    pub fn get_database_path(&self, _app_handle: Option<&AppHandle>) -> String {
+        #[cfg(debug_assertions)]
         {
-            if let Some(handle) = app_handle {
-                if let Ok(app_data_dir) = handle.path().app_data_dir() {
-                    return app_data_dir.join("app.db").to_string_lossy().to_string();
-                }
-            }
+            // 开发模式：直接使用配置中的路径
+            self.database_url.clone()
         }
 
-        self.database_url.clone()
-    }
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            database_url: "./app.db".into(),
-            host: "127.0.0.1".into(),
-            port: 3000,
-            // 生产环境首次启动时生成随机密钥
-            jwt_secret: uuid::Uuid::new_v4().to_string(),
-            jwt_ttl: 7 * 24 * 3600,
+        #[cfg(not(debug_assertions))]
+        {
+            // 生产模式：放在 app data 目录
+            if let Some(app) = app_handle {
+                if let Ok(app_data_dir) = app.path().app_data_dir() {
+                    let db_path = app_data_dir.join(&self.database_url);
+                    return format!("sqlite://{}", db_path.display());
+                }
+            }
+            format!("sqlite://{}", self.database_url)
         }
     }
 }
