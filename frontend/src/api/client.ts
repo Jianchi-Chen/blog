@@ -22,35 +22,226 @@ axiosClient.interceptors.request.use((config) => {
     return config;
 });
 
+// URL 路径到 Tauri 命令的映射
+interface TauriCommandMapping {
+    command: string;
+    paramsMapper?: (url: string, config?: AxiosRequestConfig) => any;
+}
+
+function getTauriCommand(method: string, url: string, config?: AxiosRequestConfig): TauriCommandMapping | null {
+    const user = useUserStore();
+    
+    // GET 请求映射
+    if (method === "GET") {
+        if (url === "/articles") {
+            return {
+                command: "get_articles",
+                paramsMapper: (_, cfg) => ({
+                    identity: cfg?.params?.identity || "visitor",
+                    condition: cfg?.params?.condition,
+                }),
+            };
+        }
+        if (url.match(/^\/article\/(.+)$/)) {
+            const id = url.match(/^\/article\/(.+)$/)?.[1];
+            return {
+                command: "get_article_by_id",
+                paramsMapper: () => ({ id }),
+            };
+        }
+        if (url.match(/^\/comments\/(.+)$/)) {
+            const articleId = url.match(/^\/comments\/(.+)$/)?.[1];
+            return {
+                command: "get_comments",
+                paramsMapper: () => ({
+                    articleId,
+                    token: user.token || null,
+                }),
+            };
+        }
+        if (url.match(/^\/suggestions\/(.+)$/)) {
+            const keyword = url.match(/^\/suggestions\/(.+)$/)?.[1];
+            return {
+                command: "get_suggestions",
+                paramsMapper: () => ({ keyword }),
+            };
+        }
+        if (url === "/api/users") {
+            return {
+                command: "get_users",
+                paramsMapper: (_, cfg) => ({
+                    token: user.token,
+                    limit: cfg?.params?.limit || 100,
+                }),
+            };
+        }
+    }
+    
+    // POST 请求映射
+    if (method === "POST") {
+        if (url === "/api/article") {
+            return {
+                command: "create_article",
+                paramsMapper: (_, cfg) => ({
+                    token: user.token,
+                    articleData: cfg?.data,
+                }),
+            };
+        }
+        if (url === "/api/comment") {
+            return {
+                command: "post_comment",
+                paramsMapper: (_, cfg) => ({
+                    token: user.token,
+                    commentData: {
+                        article_id: cfg?.data?.article_id,
+                        content: cfg?.data?.content,
+                        parent_id: cfg?.data?.parent_id,
+                    },
+                }),
+            };
+        }
+    }
+    
+    // PUT 请求映射
+    if (method === "PUT") {
+        if (url === "/api/comment/like") {
+            return {
+                command: "like_comment",
+                paramsMapper: (_, cfg) => ({
+                    token: user.token,
+                    payload: {
+                        comment_id: cfg?.data?.comment_id,
+                    },
+                }),
+            };
+        }
+        if (url.match(/^\/api\/article\/(.+)$/)) {
+            const id = url.match(/^\/api\/article\/(.+)$/)?.[1];
+            return {
+                command: "update_article",
+                paramsMapper: (_, cfg) => ({
+                    token: user.token,
+                    id,
+                    articleData: cfg?.data,
+                }),
+            };
+        }
+        if (url === "/api/editAccount") {
+            return {
+                command: "edit_account",
+                paramsMapper: (_, cfg) => ({
+                    token: user.token,
+                    payload: cfg?.data,
+                }),
+            };
+        }
+    }
+    
+    // DELETE 请求映射
+    if (method === "DELETE") {
+        if (url.match(/^\/api\/article\/(.+)$/)) {
+            const id = url.match(/^\/api\/article\/(.+)$/)?.[1];
+            return {
+                command: "delete_article",
+                paramsMapper: () => ({
+                    token: user.token,
+                    id,
+                }),
+            };
+        }
+        if (url.match(/^\/api\/users\/(.+)$/)) {
+            const userId = url.match(/^\/api\/users\/(.+)$/)?.[1];
+            return {
+                command: "delete_user",
+                paramsMapper: () => ({
+                    token: user.token,
+                    userId,
+                }),
+            };
+        }
+        if (url.match(/^\/comment\/(.+)$/)) {
+            const commentId = url.match(/^\/comment\/(.+)$/)?.[1];
+            return {
+                command: "delete_comment",
+                paramsMapper: () => ({
+                    token: user.token,
+                    commentId,
+                }),
+            };
+        }
+    }
+    
+    // PATCH 请求映射
+    if (method === "PATCH") {
+        if (url.match(/^\/api\/article\/(.+)$/)) {
+            const id = url.match(/^\/api\/article\/(.+)$/)?.[1];
+            return {
+                command: "toggle_article_status",
+                paramsMapper: (_, cfg) => ({
+                    token: user.token,
+                    id,
+                    toggle: cfg?.data?.toggle,
+                }),
+            };
+        }
+    }
+    
+    return null;
+}
+
 // Tauri invoke 包装函数
 async function tauriRequest<T = any>(
     method: string,
     url: string,
     config?: AxiosRequestConfig
 ): Promise<AxiosResponse<T>> {
+    // 尝试映射到 Tauri 命令
+    const mapping = getTauriCommand(method.toUpperCase(), url, config);
+    
+    if (mapping) {
+        try {
+            const params = mapping.paramsMapper ? mapping.paramsMapper(url, config) : {};
+            const data = await invoke<T>(mapping.command, params);
+            
+            // 返回类似 axios 的响应格式
+            return {
+                data,
+                status: 200,
+                statusText: "OK",
+                headers: {},
+                config: config as any,
+            } as AxiosResponse<T>;
+        } catch (error) {
+            console.error(`Tauri command ${mapping.command} failed:`, error);
+            throw {
+                response: {
+                    data: error,
+                    status: 500,
+                    statusText: "Internal Server Error",
+                },
+            };
+        }
+    }
+    
+    // 如果没有映射，回退到 http_request（用于未实现的端点）
     const user = useUserStore();
-
-    // 构建请求参数
     const requestData: any = {
         method: method.toUpperCase(),
         url,
         __token: user.token || "",
     };
 
-    // 添加查询参数
     if (config?.params) {
         requestData.params = config.params;
     }
 
-    // 添加请求体数据
     if (config?.data) {
         requestData.data = config.data;
     }
 
     try {
         const data = await invoke<T>("http_request", requestData);
-
-        // 返回类似 axios 的响应格式
         return {
             data,
             status: 200,
@@ -59,6 +250,7 @@ async function tauriRequest<T = any>(
             config: config as any,
         } as AxiosResponse<T>;
     } catch (error) {
+        console.error(`HTTP request failed:`, error);
         throw {
             response: {
                 data: error,

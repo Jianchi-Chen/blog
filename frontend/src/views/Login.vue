@@ -189,21 +189,17 @@ const handleLogin = async () => {
         // 暂时使用模拟请求（你后续用真实 API 替换）
         const response = await loginAccount(signinForm.value);
 
-        if (response.data.message == "failed") {
-            throw new Error("未注册用户");
-        }
+        console.log("Login response:", response.data);
 
-        console.log("[请求拦截]", response.data.url);
-
-        // console.log(response.data); //tokenz
-
-        // 模拟返回：{ token: "xxx", username: "admin" }
-        // 解构+重命名：从 response.data 中取出 username 字段，赋值给变量 name
+        // Tauri 后端返回格式：{ token: "xxx", user_id: "xxx", username: "xxx", identity: "xxx" }
         const token = response.data.token;
-        const name = { ...response.data.user };
-        const identity = response.data.identity;
+        const user = {
+            id: response.data.user_id,
+            username: response.data.username,
+            identity: response.data.identity,
+        };
 
-        userStore.login(token, response.data.user);
+        userStore.login(token, user);
         console.log(userStore.identity);
 
         message.success("登录成功");
@@ -211,7 +207,9 @@ const handleLogin = async () => {
     } catch (err) {
         // 类型守卫
         if (err instanceof Error) {
-            message.error(`${err}`);
+            message.error(`登录失败: ${err.message}`);
+        } else {
+            message.error(`登录失败`);
         }
     } finally {
         loading.value = false;
@@ -225,19 +223,32 @@ const handleRegister = async () => {
         // .validate()验证表单
         await registerRef.value?.validate();
         const res = await registerAccount(registerForm.value);
-        if (res.data.message == "failed") {
+        
+        console.log("Register response:", res.data);
+        
+        if (!res.data.token) {
             throw new Error("注册失败");
         }
+        
         message.success("注册成功,即将登录... go to Home");
-        // console.log('[请求拦截]', res.data.url);
+        
+        // Tauri 后端返回格式：{ token: "xxx", user_id: "xxx", username: "xxx", identity: "xxx" }
         const token = res.data.token;
-        const name = { ...res.data.user };
+        const user = {
+            id: res.data.user_id,
+            username: res.data.username,
+            identity: res.data.identity,
+        };
 
-        userStore.login(token, res.data.user);
+        userStore.login(token, user);
         router.push("/");
     } catch (err) {
         console.error(err);
-        message.error("注册失败");
+        if (err instanceof Error) {
+            message.error(`注册失败: ${err.message}`);
+        } else {
+            message.error("注册失败");
+        }
     } finally {
         loading.value = false;
     }

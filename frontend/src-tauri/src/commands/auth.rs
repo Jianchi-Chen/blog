@@ -19,6 +19,7 @@ pub struct LoginResponse {
     pub token: String,
     pub user_id: String,
     pub username: String,
+    pub identity: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,6 +55,7 @@ pub async fn login(
         token,
         user_id: user.id,
         username: user.username,
+        identity: user.identity,
     })
 }
 
@@ -96,6 +98,7 @@ pub async fn register(
         token,
         user_id: user.id,
         username: user.username,
+        identity: user.identity,
     })
 }
 
