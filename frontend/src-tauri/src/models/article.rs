@@ -16,6 +16,7 @@ pub struct ArticleModel {
     pub status: Option<String>,
     pub views: Option<i32>,
     pub tags: Option<String>,
+    pub message: String,
 }
 
 impl From<ArticleModel> for NewArticle {

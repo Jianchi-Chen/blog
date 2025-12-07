@@ -1,49 +1,130 @@
 import type { Article } from "@/types/article";
-import axios from "./client";
-import { useMessage } from "naive-ui";
-import { setup } from "naive-ui/es/radio/src/use-radio";
+import client from "./client";
+import { useAppStore } from "@/stores/app";
+import { useUserStore } from "@/stores/user";
+import { invoke } from "@tauri-apps/api/core";
 
 // 封装api函数返回promis，故前端调用时使用async/await即可
 
 // 获取文章列表
-export const fetchArticles = (identity: string, condition?: string) => {
+export const fetchArticles = async (identity: string, condition?: string) => {
+    const app = useAppStore();
+    
+    if (app.isTauri) {
+        const data = await invoke("get_articles", { 
+            identity, 
+            condition 
+        });
+        return { data };
+    }
+    
     // GET请求中，第二个参数需要写在params里，params 是专门用来指定 URL 查询参数的字段，它的值必须是一个对象
-    return axios.get("/articles", { params: { identity, condition } });
+    return client.get("/articles", { params: { identity, condition } });
 };
 
 // 获取文章详情
 // 从表单、输入框获得的值通常为string, 所以id的类型设置为两种
 // 模板字面量使用反斜杠``包裹，否则不识别！
-export const fetchArticleById = (id: Article["id"]) => {
-    return axios.get(`/article/${id}`);
+export const fetchArticleById = async (id: Article["id"]) => {
+    const app = useAppStore();
+    
+    if (app.isTauri) {
+        const data = await invoke("get_article_by_id", { id });
+        return { data };
+    }
+    
+    return client.get(`/article/${id}`);
 };
 
 // 新建文章
-export const publishArticle = (arg: Article) => {
-    return axios.post("/api/article", arg);
+export const publishArticle = async (arg: Article) => {
+    const app = useAppStore();
+    const user = useUserStore();
+    
+    if (app.isTauri) {
+        const data = await invoke("create_article", { 
+            token: user.token,
+            articleData: arg 
+        });
+        return { data };
+    }
+    
+    return client.post("/api/article", arg);
 };
 
 // 修改文章
-export const updateArticle = (id: Article["id"], data: Article) => {
-    return axios.put(`/api/article/${id}`, data);
+export const updateArticle = async (id: Article["id"], data: Article) => {
+    const app = useAppStore();
+    const user = useUserStore();
+    
+    if (app.isTauri) {
+        const result = await invoke("update_article", { 
+            token: user.token,
+            id,
+            articleData: data 
+        });
+        return { data: result };
+    }
+    
+    return client.put(`/api/article/${id}`, data);
 };
 
 // 删除文章
-export const deleteArticle = (id: Article["id"]) => {
-    return axios.delete(`/api/article/${id}`);
+export const deleteArticle = async (id: Article["id"]) => {
+    const app = useAppStore();
+    const user = useUserStore();
+    
+    if (app.isTauri) {
+        const data = await invoke("delete_article", { 
+            token: user.token,
+            id 
+        });
+        return { data };
+    }
+    
+    return client.delete(`/api/article/${id}`);
 };
 
 // 转换文章状态
-export const toggleStatus = (id: Article["id"], toggle: string) => {
-    return axios.patch(`/api/article/${id}`, { toggle });
+export const toggleStatus = async (id: Article["id"], toggle: string) => {
+    const app = useAppStore();
+    const user = useUserStore();
+    
+    if (app.isTauri) {
+        const data = await invoke("toggle_article_status", { 
+            token: user.token,
+            id,
+            toggle 
+        });
+        return { data };
+    }
+    
+    return client.patch(`/api/article/${id}`, { toggle });
 };
 
 // 获取建议
-export const fetchSuggestions = (keyword: string) => {
-    return axios.get(`/suggestions/${keyword}`);
+export const fetchSuggestions = async (keyword: string) => {
+    const app = useAppStore();
+    
+    if (app.isTauri) {
+        const data = await invoke("get_suggestions", { keyword });
+        return { data };
+    }
+    
+    return client.get(`/suggestions/${keyword}`);
 };
 
 // 根据标签获取文章
-export const fetchArticleByConditions = (condition: string) => {
-    return axios.get(`/article/${condition}`);
+export const fetchArticleByConditions = async (condition: string) => {
+    const app = useAppStore();
+    
+    if (app.isTauri) {
+        const data = await invoke("get_articles", { 
+            identity: "visitor",
+            condition 
+        });
+        return { data };
+    }
+    
+    return client.get(`/article/${condition}`);
 };

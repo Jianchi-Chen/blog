@@ -3,6 +3,7 @@
 use crate::auth::decode_token;
 use crate::config::Config;
 use crate::models::article::{ArticleModel, PubArticles};
+use crate::models::ResponseMessage;
 use crate::repositories::article;
 use serde::Serialize;
 use sqlx::SqlitePool;
@@ -63,7 +64,10 @@ pub async fn create_article(
         .await
         .map_err(|e| format!("Failed to create article: {}", e))?;
 
-    Ok(result)
+    Ok(ArticleModel {
+        message: "done".to_string(),
+        ..result
+    })
 }
 
 /// 更新文章
@@ -82,7 +86,10 @@ pub async fn update_article(
         .await
         .map_err(|e| format!("Failed to update article: {}", e))?;
 
-    Ok(result)
+    Ok(ArticleModel {
+        message: "done".to_string(),
+        ..result
+    })
 }
 
 /// 删除文章
@@ -92,7 +99,7 @@ pub async fn delete_article(
     id: String,
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
-) -> Result<(), String> {
+) -> Result<ResponseMessage, String> {
     // 验证 token
     let _claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
 
@@ -100,7 +107,9 @@ pub async fn delete_article(
         .await
         .map_err(|e| format!("Failed to delete article: {}", e))?;
 
-    Ok(())
+    Ok(ResponseMessage {
+        message: "done".to_string(),
+    })
 }
 
 /// 更改文章状态

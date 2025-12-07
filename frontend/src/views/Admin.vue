@@ -62,6 +62,7 @@ import type { User } from "@/types/user";
 import { fetchUsers, deleteUser as deleteUserApi } from "@/api/account";
 import { NewLineKind } from "typescript";
 import NewUserDialog from "@/components/NewUserDialog.vue";
+import { useAppStore } from "@/stores/app";
 
 const loading = ref(true);
 const router = useRouter();
@@ -77,6 +78,7 @@ const newButton = ref("New Article");
 const showNewUserDialog = ref(false);
 const showEditUserDialog = ref(false);
 const SelectedUserdata = ref<User | null>(null);
+const appstore = useAppStore();
 
 interface RowData {
     id: string;
@@ -318,7 +320,11 @@ const handleDelete = async (id: Article["id"]) => {
         onPositiveClick: async () => {
             // 模拟删除接口
             const res = await deleteArticle(id);
-            if (res && res.status == 204) {
+            if (
+                appstore.isTauri
+                    ? (res.data as any).message === "done"
+                    : (res as any).status === 204
+            ) {
                 message.success("Delete succeeded");
             } else if (res && res.data.message == "删除失败") {
                 message.error("Delete failed");
@@ -400,7 +406,11 @@ const deleteUser = async (id: User["id"]) => {
             }
             try {
                 const res = await deleteUserApi(id);
-                if (res.status === 204) {
+                if (
+                    appstore.isTauri
+                        ? (res.data as any).message === "done"
+                        : (res as any).status === 204
+                ) {
                     message.success("用户删除成功");
                     // 删除后更新用户表格数据
                     Userdata.value = Userdata.value.filter(

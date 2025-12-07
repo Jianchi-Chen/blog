@@ -66,6 +66,7 @@
 
 <script setup lang="ts">
 import { EditAccount, registerAccount } from "@/api/account";
+import { useAppStore } from "@/stores/app";
 import { useUserStore } from "@/stores/user";
 import type { EditUserData, User } from "@/types/user";
 import {
@@ -99,6 +100,7 @@ const modelRef = ref<ModelType>({
     reenteredPassword: "",
 });
 
+const appstore = useAppStore();
 const userstore = useUserStore();
 const loading = ref(false);
 const revisedPassword = ref("false");
@@ -176,12 +178,18 @@ const EditUser = async () => {
             current_token: userstore.token || "",
             edited_id: props.userdata?.id ? props.userdata.id : "",
             edited_username: modelRef.value.username,
-            edited_password: modelRef.value.password? modelRef.value.password : "",
+            edited_password: modelRef.value.password
+                ? modelRef.value.password
+                : "",
             edited_identity: radio_button_value.value || "user",
         };
         console.log(payload);
         const res = await EditAccount(payload);
-        if (res.status !== 200) {
+        if (
+            appstore.isTauri
+                ? (res.data as any).data.message !== "done"
+                : (res as any).status !== 200
+        ) {
             throw new Error("编辑失败");
         }
         message.success("编辑成功");
