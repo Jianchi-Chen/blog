@@ -36,20 +36,48 @@ pub async fn login(
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
 ) -> Result<LoginResponse, String> {
+    log::info!("login attempt for user: {}", credentials.username);
+
     // 查询用户
-    let user = find_user_by_username(pool.inner(), &credentials.username)
-        .await
-        .map_err(|e| format!("Database error: {}", e))?
-        .ok_or("用户名或密码错误")?;
+    let user = match find_user_by_username(pool.inner(), &credentials.username).await {
+        Ok(Some(user)) => user,
+        Ok(None) => {
+            log::error!(
+                "login failed for user: {} - user not found",
+                credentials.username
+            );
+            return Err("未注册用户".to_string());
+        }
+        Err(e) => {
+            log::error!(
+                "login failed for user: {} due to database error: {}",
+                credentials.username,
+                e.to_string()
+            );
+            return Err(format!("Database error: {}", e));
+        }
+    };
 
     // 验证密码
     if !verify_password(&credentials.password, &user.password) {
+        log::error!(
+            "login failed for user: {} due to incorrect password",
+            credentials.username
+        );
         return Err("用户名或密码错误".to_string());
     }
 
     // 生成 token
-    let token = generate_token(&config, user.id.clone(), &user.username)
-        .map_err(|e| format!("Failed to generate token: {}", e))?;
+    let token = generate_token(&config, user.id.clone(), &user.username).map_err(|e| {
+        log::error!(
+            "login failed for user: {} due to token generation error: {}",
+            credentials.username,
+            e.to_string()
+        );
+        format!("Failed to generate token: {}", e)
+    })?;
+
+    log::info!("login successful for user: {}", credentials.username);
 
     Ok(LoginResponse {
         token,
@@ -72,6 +100,10 @@ pub async fn register(
         .map_err(|e| format!("Database error: {}", e))?;
 
     if existing.is_some() {
+        log::warn!(
+            "register attempt with existing username: {}",
+            user_info.username
+        );
         return Err("用户名已存在".to_string());
     }
 
@@ -93,6 +125,8 @@ pub async fn register(
     // 生成 token
     let token = generate_token(&config, user.id.clone(), &user.username)
         .map_err(|e| format!("Failed to generate token: {}", e))?;
+
+    log::info!("User registered successfully: {}", user_info.username);
 
     Ok(LoginResponse {
         token,

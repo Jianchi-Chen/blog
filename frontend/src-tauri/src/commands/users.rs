@@ -3,7 +3,10 @@
 use crate::auth::{decode_token, hash_password};
 use crate::config::Config;
 use crate::models::user::UserPublic;
-use crate::repositories::user::{delete_user_by_id, edit_user_account, get_ident_by_id, list_users, AdminEditAccountPayload};
+use crate::models::ResponseMessage;
+use crate::repositories::user::{
+    delete_user_by_id, edit_user_account, get_ident_by_id, list_users, AdminEditAccountPayload,
+};
 use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::State;
@@ -28,7 +31,7 @@ pub async fn get_users(
     let identity = get_ident_by_id(pool.inner(), &claims.user_id)
         .await
         .map_err(|e| format!("Database error: {}", e))?;
-    
+
     if identity != "admin" {
         return Err("Only admin can view users".to_string());
     }
@@ -48,7 +51,7 @@ pub async fn delete_user(
     user_id: String,
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
-) -> Result<(), String> {
+) -> Result<ResponseMessage, String> {
     // 验证 token
     let claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
 
@@ -56,7 +59,7 @@ pub async fn delete_user(
     let identity = get_ident_by_id(pool.inner(), &claims.user_id)
         .await
         .map_err(|e| format!("Database error: {}", e))?;
-    
+
     if identity != "admin" {
         return Err("Only admin can delete users".to_string());
     }
@@ -65,7 +68,9 @@ pub async fn delete_user(
         .await
         .map_err(|e| format!("Failed to delete user: {}", e))?;
 
-    Ok(())
+    Ok(ResponseMessage {
+        message: "done".to_string(),
+    })
 }
 
 /// 编辑用户账号（仅管理员可用）
@@ -75,7 +80,7 @@ pub async fn edit_account(
     payload: AdminEditAccountPayload,
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
-) -> Result<(), String> {
+) -> Result<ResponseMessage, String> {
     // 验证 token
     let claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
 
@@ -83,7 +88,7 @@ pub async fn edit_account(
     let identity = get_ident_by_id(pool.inner(), &claims.user_id)
         .await
         .map_err(|e| format!("Database error: {}", e))?;
-    
+
     if identity != "admin" {
         return Err("Only admin can edit user accounts".to_string());
     }
@@ -98,10 +103,7 @@ pub async fn edit_account(
     // 将传递的密码转为 hash
     let new_password = if let Some(ref password) = payload.edited_password {
         if !password.is_empty() {
-            Some(
-                hash_password(password)
-                    .map_err(|e| format!("Failed to hash password: {}", e))?,
-            )
+            Some(hash_password(password).map_err(|e| format!("Failed to hash password: {}", e))?)
         } else {
             None
         }
@@ -120,5 +122,7 @@ pub async fn edit_account(
         .await
         .map_err(|e| format!("Failed to edit account: {}", e))?;
 
-    Ok(())
+    Ok(ResponseMessage {
+        message: "done".to_string(),
+    })
 }

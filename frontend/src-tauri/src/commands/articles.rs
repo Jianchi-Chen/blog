@@ -20,6 +20,7 @@ pub async fn get_articles(
     condition: Option<String>,
     pool: State<'_, SqlitePool>,
 ) -> Result<ArticleResponse, String> {
+    log::info!("get_articles");
     let params = article::GetArticlesParams {
         identity,
         condition,
@@ -29,6 +30,7 @@ pub async fn get_articles(
         .await
         .map_err(|e| format!("Failed to fetch articles: {}", e))?;
 
+    log::info!("success get_articles");
     Ok(ArticleResponse { articles })
 }
 

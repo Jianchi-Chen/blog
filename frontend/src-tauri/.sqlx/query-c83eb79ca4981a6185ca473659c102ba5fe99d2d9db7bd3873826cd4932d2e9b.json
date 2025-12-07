@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT identity FROM users WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "identity",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "c83eb79ca4981a6185ca473659c102ba5fe99d2d9db7bd3873826cd4932d2e9b"
+}

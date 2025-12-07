@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE users\n        SET\n            username = COALESCE($1, username),\n            password = COALESCE($2, password),\n            identity = COALESCE($3, identity)\n        WHERE id = $4\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "cc5b0c403ed7e20bdb009fb015596c4db3b3408d6635b3a822eb330cf8fa7790"
+}

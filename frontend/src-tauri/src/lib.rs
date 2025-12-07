@@ -8,7 +8,7 @@ pub mod models;
 pub mod repositories;
 
 use config::Config;
-use db::{new_pool, run_migrations};
+use db::{new_pool, run_migrations, run_seeds};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -42,6 +42,12 @@ pub fn run() {
             let pool = match tauri::async_runtime::block_on(async {
                 let pool = new_pool(&database_url).await?;
                 run_migrations(&pool).await?;
+                
+                // 运行种子数据（仅在开发模式或首次运行时）
+                if let Err(e) = run_seeds(&pool).await {
+                    log::warn!("Failed to run seeds: {}", e);
+                }
+                
                 Ok::<_, Box<dyn std::error::Error>>(pool)
             }) {
                 Ok(p) => p,

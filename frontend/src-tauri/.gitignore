@@ -2,3 +2,8 @@
 # will have compiled files and executables
 /target/
 /gen/schemas
+
+# 开发用数据库（不要提交）
+app.db
+app.db-shm
+app.db-wal

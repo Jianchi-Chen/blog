@@ -8,20 +8,20 @@ pub async fn new_pool(db_url: &str) -> Result<SqlitePool, sqlx::Error> {
         let path = db_url.trim_start_matches("sqlite://");
         let db_path = PathBuf::from(path);
         
-        println!("Database file path: {}", db_path.display());
+        log::info!("Database file path: {}", db_path.display());
         
         // 确保父目录存在
         if let Some(parent) = db_path.parent() {
-            println!("Creating database directory: {}", parent.display());
+            log::info!("Creating database directory: {}", parent.display());
             std::fs::create_dir_all(parent)
                 .map_err(|e| {
-                    eprintln!("Failed to create directory {}: {}", parent.display(), e);
+                    log::error!("Failed to create directory {}: {}", parent.display(), e);
                     sqlx::Error::Io(std::io::Error::new(
                         std::io::ErrorKind::Other,
                         format!("Failed to create database directory: {}", e)
                     ))
                 })?;
-            println!("Database directory created successfully");
+            log::info!("Database directory created successfully");
         }
     }
 
@@ -32,7 +32,7 @@ pub async fn new_pool(db_url: &str) -> Result<SqlitePool, sqlx::Error> {
         format!("{}?mode=rwc", db_url)
     };
     
-    println!("Connecting to database: {}", connection_url);
+    log::info!("Connecting to database: {}", connection_url);
     SqlitePoolOptions::new()
         .max_connections(5)
         .connect(&connection_url)
@@ -46,8 +46,7 @@ pub async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::migrate::Migr
         .await
 }
 
-/// 运行数据库种子数据（仅开发环境）
-#[allow(dead_code)]
+/// 运行数据库种子数据
 pub async fn run_seeds(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     let seed_dir = PathBuf::from("./seeds");
     
@@ -70,7 +69,7 @@ pub async fn run_seeds(pool: &SqlitePool) -> Result<(), sqlx::Error> {
             
             sqlx::raw_sql(&sql).execute(pool).await?;
             
-            println!("Executed seed: {}", path.display());
+            log::info!("Executed seed: {}", path.display());
         }
     }
 
