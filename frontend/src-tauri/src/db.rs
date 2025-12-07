@@ -8,19 +8,34 @@ pub async fn new_pool(db_url: &str) -> Result<SqlitePool, sqlx::Error> {
         let path = db_url.trim_start_matches("sqlite://");
         let db_path = PathBuf::from(path);
         
+        println!("Database file path: {}", db_path.display());
+        
         // 确保父目录存在
         if let Some(parent) = db_path.parent() {
+            println!("Creating database directory: {}", parent.display());
             std::fs::create_dir_all(parent)
-                .map_err(|e| sqlx::Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Failed to create database directory: {}", e)
-                )))?;
+                .map_err(|e| {
+                    eprintln!("Failed to create directory {}: {}", parent.display(), e);
+                    sqlx::Error::Io(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("Failed to create database directory: {}", e)
+                    ))
+                })?;
+            println!("Database directory created successfully");
         }
     }
 
+    // 添加 create_if_missing 选项到连接字符串
+    let connection_url = if db_url.contains('?') {
+        format!("{}&mode=rwc", db_url)
+    } else {
+        format!("{}?mode=rwc", db_url)
+    };
+    
+    println!("Connecting to database: {}", connection_url);
     SqlitePoolOptions::new()
         .max_connections(5)
-        .connect(db_url)
+        .connect(&connection_url)
         .await
 }
 

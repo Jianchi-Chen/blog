@@ -13,15 +13,17 @@
         "windows": [
             {
                 "title": "cjcblog",
-                "width": 800,
-                "height": 600,
+                "width": 1200,
+                "height": 800,
                 "resizable": true,
-                "fullscreen": false
+                "fullscreen": false,
+                "center": true
             }
         ],
         "security": {
             "csp": null
-        }
+        },
+        "withGlobalTauri": false
     },
     "bundle": {
         "active": true,

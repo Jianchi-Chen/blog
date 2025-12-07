@@ -15,32 +15,47 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
+        .plugin(
+            tauri_plugin_log::Builder::default()
+                .level(log::LevelFilter::Info)
+                .build(),
+        )
         .setup(|app| {
-            // 日志插件（仅开发模式）
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-
             // 加载配置
-            let config = Config::load(Some(&app.handle())).expect("Failed to load configuration");
+            let config = match Config::load(&app.handle()) {
+                Ok(cfg) => cfg,
+                Err(e) => {
+                    eprintln!("Failed to load configuration: {}", e);
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("Configuration error: {}", e),
+                    )));
+                }
+            };
 
             log::info!("Application started with config: {:?}", config);
 
-            // 初始化数据库（异步操作需要在 tokio runtime 中执行）
-            let database_url = config.get_database_path(Some(&app.handle()));
-            let pool = tauri::async_runtime::block_on(async {
-                let pool = new_pool(&database_url)
-                    .await
-                    .expect("Failed to create database pool");
-                run_migrations(&pool)
-                    .await
-                    .expect("Failed to run migrations");
-                pool
-            });
+            // 初始化数据库
+            let database_url = config.get_database_path(&app.handle());
+            log::info!("Database path: {}", database_url);
+
+            let pool = match tauri::async_runtime::block_on(async {
+                let pool = new_pool(&database_url).await?;
+                run_migrations(&pool).await?;
+                Ok::<_, Box<dyn std::error::Error>>(pool)
+            }) {
+                Ok(p) => p,
+                Err(e) => {
+                    eprintln!("Database initialization failed: {}", e);
+                    log::error!("Database initialization failed: {}", e);
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("Database error: {}", e),
+                    )));
+                }
+            };
+
+            log::info!("Database initialized successfully");
 
             // 将配置和连接池存储到状态中
             app.manage(config);
