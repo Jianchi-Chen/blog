@@ -42,7 +42,6 @@ const handleToggleStatus = () => {
         emit("toggleStatus", id, "published");
     }
 
-    // :type
 };
 </script>
 

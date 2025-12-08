@@ -9,7 +9,7 @@ import { useArticleStore } from "@/stores/article";
 import type { Article } from "@/types/article";
 import Vditor from "vditor";
 import "vditor/dist/index.css"; // vditor-preview模式
-import { nextTick, onMounted, ref, watch, watchEffect } from "vue";
+import { nextTick, ref, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 
 const route = useRoute();
@@ -47,7 +47,6 @@ const render = (markdown: string | undefined) => {
 // watch(() => props.md, render, { immediate: true })
 watchEffect(() => {
     if (articleStore.osTheme || props.md) {
-        // console.log("1");
         theme.value = articleStore.osTheme === false ? "light" : "dark";
         render(props.md);
     }

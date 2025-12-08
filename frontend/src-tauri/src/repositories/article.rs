@@ -91,7 +91,7 @@ pub async fn post_article(
     .execute(pool)
     .await?;
 
-    sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
+    sqlx::query_as::<_, ArticleModel>(r#"SELECT *, '' as message FROM articles WHERE id = ?"#)
         .bind(&id)
         .fetch_one(pool)
         .await
@@ -102,7 +102,7 @@ pub async fn find_article_by_id(
     pool: &SqlitePool,
     id: &str,
 ) -> Result<Option<ArticleModel>, sqlx::Error> {
-    sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
+    sqlx::query_as::<_, ArticleModel>(r#"SELECT *, '' as message FROM articles WHERE id = ?"#)
         .bind(id)
         .fetch_optional(pool)
         .await
@@ -148,7 +148,7 @@ pub async fn put_article_by_id(
     .execute(pool)
     .await?;
 
-    sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
+    sqlx::query_as::<_, ArticleModel>(r#"SELECT *, '' as message FROM articles WHERE id = ?"#)
         .bind(id)
         .fetch_one(pool)
         .await
@@ -171,8 +171,12 @@ pub async fn patch_article_by_id(
     .execute(pool)
     .await?;
 
-    sqlx::query_as::<_, ArticleModel>(r#"SELECT * FROM articles WHERE id = ?"#)
-        .bind(id)
-        .fetch_one(pool)
-        .await
+    let mut article =
+        sqlx::query_as::<_, ArticleModel>(r#"SELECT *, '' as message FROM articles WHERE id = ?"#)
+            .bind(id)
+            .fetch_one(pool)
+            .await?;
+
+    article.message = "done".to_string();
+    Ok(article)
 }

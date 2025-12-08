@@ -21,7 +21,7 @@ pub async fn get_articles(
     condition: Option<String>,
     pool: State<'_, SqlitePool>,
 ) -> Result<ArticleResponse, String> {
-    log::info!("get_articles");
+    log::info!("attempt to get_articles");
     let params = article::GetArticlesParams {
         identity,
         condition,
@@ -41,11 +41,13 @@ pub async fn get_article_by_id(
     id: String,
     pool: State<'_, SqlitePool>,
 ) -> Result<ArticleModel, String> {
+    log::info!("attempt to get_article_by_id");
     let result = article::find_article_by_id(pool.inner(), &id)
         .await
         .map_err(|e| format!("Failed to fetch article: {}", e))?
         .ok_or("Article not found")?;
 
+    log::info!("success get_article_by_id");
     Ok(result)
 }
 
@@ -57,6 +59,7 @@ pub async fn create_article(
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
 ) -> Result<ArticleModel, String> {
+    log::info!("attempt to create_article");
     // 验证 token
     let _claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
 
@@ -64,6 +67,7 @@ pub async fn create_article(
         .await
         .map_err(|e| format!("Failed to create article: {}", e))?;
 
+    log::info!("success create_article");
     Ok(ArticleModel {
         message: "done".to_string(),
         ..result
@@ -79,6 +83,7 @@ pub async fn update_article(
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
 ) -> Result<ArticleModel, String> {
+    log::info!("attempt to update_article");
     // 验证 token
     let _claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
 
@@ -86,6 +91,7 @@ pub async fn update_article(
         .await
         .map_err(|e| format!("Failed to update article: {}", e))?;
 
+    log::info!("success update_article");
     Ok(ArticleModel {
         message: "done".to_string(),
         ..result
@@ -100,6 +106,7 @@ pub async fn delete_article(
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
 ) -> Result<ResponseMessage, String> {
+    log::info!("attempt to delete_article");
     // 验证 token
     let _claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
 
@@ -107,6 +114,7 @@ pub async fn delete_article(
         .await
         .map_err(|e| format!("Failed to delete article: {}", e))?;
 
+    log::info!("success delete_article");
     Ok(ResponseMessage {
         message: "done".to_string(),
     })
@@ -121,12 +129,20 @@ pub async fn toggle_article_status(
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
 ) -> Result<ArticleModel, String> {
+    log::info!("attemp to toggle_article_status");
     // 验证 token
-    let _claims = decode_token(&config, &token).map_err(|e| format!("Invalid token: {}", e))?;
+    decode_token(&config, &token).map_err(|e| {
+        log::error!("Invalid token: {}", e);
+        format!("Invalid token: {}", e)
+    })?;
 
     let result = article::patch_article_by_id(pool.inner(), &id, status)
         .await
-        .map_err(|e| format!("Failed to toggle article status: {}", e))?;
+        .map_err(|e| {
+            log::error!("Failed to toggle article status: {}", e);
+            format!("Failed to toggle article status: {}", e)
+        })?;
 
+    log::info!("success toggle_article_status");
     Ok(result)
 }

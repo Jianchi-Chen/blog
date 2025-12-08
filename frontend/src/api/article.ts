@@ -94,7 +94,7 @@ export const toggleStatus = async (id: Article["id"], toggle: string) => {
         const data = await invoke("toggle_article_status", { 
             token: user.token,
             id,
-            toggle 
+            status: { toggle }  // 后端期望 NewStatus 结构体
         });
         return { data };
     }
