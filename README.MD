@@ -58,6 +58,15 @@ npm run tauri build  # 生产环境打包
 
 已编译的桌面应用可在 [Releases](https://github.com/Jianchi-Chen/myBlog/releases) 页面下载。
 
+## 默认账户
+
+**超级管理员账户**
+
+-   用户名：`admin`
+-   密码：`tfF;1J(2WokG,5`
+
+> 适用于 Web 端和 Tauri 桌面应用
+
 ## 说明
 
 这是一个用于学习目的的练习项目。不打算部署到生产环境，有建议欢迎探讨。
