@@ -180,7 +180,7 @@ const createNewUser = async () => {
 
         // Tauri 和 Web 都返回 { data: ... }，统一检查 data
         const isSuccess = appstore.isTauri
-            ? (res.data as any)?.message === "done"
+            ? (res.data.token as string).length > 0
             : (res as any).status === 201;
 
         if (!isSuccess) {

@@ -15,6 +15,7 @@ pub async fn get_comments(
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
 ) -> Result<Vec<CommentWithLike>, String> {
+    log::info!("attempt to get comments for article_id: {}", article_id);
     // 获取用户ID（如果有token）
     let user_id = if let Some(token) = token {
         decode_token(&config, &token)
@@ -28,6 +29,12 @@ pub async fn get_comments(
     let comments = fetch_comments_by_article_id(pool.inner(), &article_id, &user_id)
         .await
         .map_err(|e| format!("Failed to fetch comments: {}", e))?;
+
+    log::info!(
+        "fetched {} comments for article_id: {}",
+        comments.len(),
+        article_id
+    );
 
     Ok(comments)
 }

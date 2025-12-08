@@ -1,5 +1,5 @@
 <template>
-    <ns-space vertical size="large" style="width: 100%">
+    <n-space vertical size="large" style="width: 100%">
         <n-card bordered size="large">
             <template #header>
                 <div class="flex items-start justify-between w-full">
@@ -48,7 +48,7 @@
             <!-- 保持 CommentSection 不变 -->
             <CommentSection />
         </n-card>
-    </ns-space>
+    </n-space>
 </template>
 
 <script setup lang="ts">

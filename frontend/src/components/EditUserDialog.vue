@@ -185,11 +185,13 @@ const EditUser = async () => {
         };
         console.log(payload);
         const res = await EditAccount(payload);
-        if (
-            appstore.isTauri
-                ? (res.data as any).data.message !== "done"
-                : (res as any).status !== 200
-        ) {
+
+        // Tauri: { data: { message: "done" } }  Web: AxiosResponse with status
+        const isSuccess = appstore.isTauri
+            ? (res.data as any)?.message === "done"
+            : (res as any).status === 200;
+
+        if (!isSuccess) {
             throw new Error("编辑失败");
         }
         message.success("编辑成功");

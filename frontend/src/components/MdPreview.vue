@@ -39,6 +39,7 @@ const render = (markdown: string | undefined) => {
                 theme: {
                     current: theme.value,
                 },
+                cdn: '/node_modules/vditor', // 使用本地资源而不是 CDN
             });
         }
     });

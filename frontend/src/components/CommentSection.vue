@@ -146,6 +146,7 @@ import { useArticleStore } from "@/stores/article";
 import EntryCommentBar from "./EntryCommentBar.vue";
 import { FavoriteBorderOutlined } from "@vicons/material";
 import { FavoriteOutlined } from "@vicons/material";
+import { useAppStore } from "@/stores/app";
 
 const commentTitle = ref<HTMLElement | null>(null);
 const isFixed = ref(false);
@@ -160,19 +161,41 @@ const dialog = useDialog();
 const entryRef = ref<any>(null);
 const likedComments = ref<string[]>([]);
 const isLiked = ref([]);
+const AppStore = useAppStore();
 
 // 初始化
 const loadComments = async () => {
-    // 获取评论列表
-    const res = await fetchComments(articleId);
-    comments.value = buildCommentsTree(res.data.comments);
-    ifComment.value = comments.value.length > 0;
+    try {
+        // 获取评论列表
+        const res = await fetchComments(articleId);
+        console.log("Fetched comments:", res);
+        
+        // 统一提取数据数组
+        let commentsData: any[];
+        if (AppStore.isTauri) {
+            // Tauri: { data: Array }
+            commentsData = res.data as any[];
+        } else {
+            // Web: AxiosResponse { data: { comments: Array } }
+            commentsData = (res as any).data.comments;
+        }
+        
+        comments.value = buildCommentsTree(commentsData);
+        ifComment.value = comments.value.length > 0;
+    } catch (error) {
+        console.error("Error fetching comments:", error);
+        message.error("加载评论失败，请稍后重试");
+    }
 };
 
 // 构建评论树
-const buildCommentsTree = (comments: any[]) => {
+const buildCommentsTree = (commentsData: any) => {
     const map = new Map();
     const roots: any[] = [];
+
+    // 确保传入的是数组
+    const comments = Array.isArray(commentsData) ? commentsData : [];
+    console.log("comments:", comments);
 
     // 为每个评论初始化 children 数组
     comments.forEach((c) => {
@@ -255,7 +278,12 @@ const likeComment = async (
     }
 
     const res = await updateCommentLike(commentId, utoken);
-    if (res.status !== 200) {
+    if (
+        AppStore.isTauri
+            ? (res.data as any)?.message !== "liked" &&
+              (res.data as any)?.message !== "unliked"
+            : (res as any).status !== 200
+    ) {
         message.error("点赞失败，请稍后重试");
         return;
     }

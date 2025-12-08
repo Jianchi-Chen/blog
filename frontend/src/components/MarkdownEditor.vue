@@ -42,6 +42,7 @@ onMounted(() => {
             value: initialValue,
             placeholder: "请输入Markdown内容...",
             mode: "sv",
+            cdn: "/node_modules/vditor", // 使用本地资源而不是 CDN
             preview: {
                 markdown: {
                     toc: true,
