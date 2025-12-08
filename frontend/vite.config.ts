@@ -28,6 +28,10 @@ export default defineConfig({
 
     // 配置 Vite 代理
     server: {
+        fs: {
+            // 允许访问 node_modules 中的文件
+            allow: ['..'],
+        },
         proxy: {
             "/api": {
                 target: "http://127.0.0.1:5173", // ← 这里填你的后端端口

@@ -147,6 +147,7 @@ import EntryCommentBar from "./EntryCommentBar.vue";
 import { FavoriteBorderOutlined } from "@vicons/material";
 import { FavoriteOutlined } from "@vicons/material";
 import { useAppStore } from "@/stores/app";
+import { error } from "naive-ui/es/_utils/naive/warn";
 
 const commentTitle = ref<HTMLElement | null>(null);
 const isFixed = ref(false);
@@ -169,7 +170,7 @@ const loadComments = async () => {
         // 获取评论列表
         const res = await fetchComments(articleId);
         console.log("Fetched comments:", res);
-        
+
         // 统一提取数据数组
         let commentsData: any[];
         if (AppStore.isTauri) {
@@ -179,7 +180,7 @@ const loadComments = async () => {
             // Web: AxiosResponse { data: { comments: Array } }
             commentsData = (res as any).data.comments;
         }
-        
+
         comments.value = buildCommentsTree(commentsData);
         ifComment.value = comments.value.length > 0;
     } catch (error) {
@@ -277,18 +278,7 @@ const likeComment = async (
         return;
     }
 
-    const res = await updateCommentLike(commentId, utoken);
-    if (
-        AppStore.isTauri
-            ? (res.data as any)?.message !== "liked" &&
-              (res.data as any)?.message !== "unliked"
-            : (res as any).status !== 200
-    ) {
-        message.error("点赞失败，请稍后重试");
-        return;
-    }
-
-    // 局部更新
+    // 先找到目标评论
     let target: any = null;
     if (mode === "main") {
         target = comments.value.find((c) => c.comment_id === commentId);
@@ -303,14 +293,64 @@ const likeComment = async (
         return;
     }
 
-    if (res.data.like_or_unlike === "liked") {
+    // 记录操作前的状态，用于失败时回滚
+    const previousLikedState = target.liked_by_me;
+    const previousLikeCount = target.like_count;
+
+    // 乐观更新 UI（先假设操作会成功）
+    if (previousLikedState === 0) {
+        // 当前未点赞，执行点赞
         target.like_count += 1;
         target.liked_by_me = 1;
-        message.success("点赞成功");
     } else {
+        // 当前已点赞，执行取消点赞
         target.like_count -= 1;
         target.liked_by_me = 0;
-        message.info("取消点赞");
+    }
+
+    try {
+        const res = await updateCommentLike(commentId, utoken);
+
+        // 统一提取响应数据
+        let responseData: any;
+        if (AppStore.isTauri) {
+            // Tauri: { data: "liked" | "unliked" }
+            responseData = res.data;
+        } else {
+            // Web: { data: { like_or_unlike: "liked" | "unliked" } }
+            responseData = (res as any).data.like_or_unlike;
+        }
+
+        // 验证后端返回的结果与预期是否一致
+        const isLiked = responseData === "liked";
+        const expectedState = previousLikedState === 0 ? 1 : 0;
+
+        if ((isLiked ? 1 : 0) !== expectedState) {
+            // 后端返回的状态与预期不符，回滚
+            target.like_count = previousLikeCount;
+            target.liked_by_me = previousLikedState;
+            message.error("点赞状态异常，请刷新页面重试");
+            console.error("状态不一致:", {
+                isLiked,
+                expectedState,
+                previousLikedState,
+                responseData,
+            });
+            return;
+        }
+
+        // 显示成功消息
+        if (isLiked) {
+            message.success("点赞成功");
+        } else {
+            message.info("取消点赞");
+        }
+    } catch (error) {
+        // 请求失败，回滚 UI 状态
+        target.like_count = previousLikeCount;
+        target.liked_by_me = previousLikedState;
+        message.error("操作失败，请稍后重试");
+        console.error("点赞失败:", error);
     }
 };
 </script>
