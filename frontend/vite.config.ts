@@ -8,7 +8,7 @@ import Components from "unplugin-vue-components/vite";
 import { NaiveUiResolver } from "unplugin-vue-components/resolvers";
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [
         vue(),
         vueDevTools(),
@@ -55,5 +55,6 @@ export default defineConfig({
         },
     },
 
-    base: "/myBlog/",
-});
+    // Tauri 使用相对路径，Web 部署使用 /myBlog/
+    base: process.env.TAURI_ENV_PLATFORM ? "/" : "/myBlog/",
+}));
