@@ -1,0 +1,67 @@
+name: Tauri Release
+
+on:
+  push:
+    tags:
+      - 'v*'   # 当推送版本标签时触发，例如 v1.0.0
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  build-tauri:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 检出代码
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. 设置 Node 环境（用于前端 Vue3 部分）
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 24
+
+      # 3. 设置 Rust 环境（用于 Tauri 后端）
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # 4. 缓存 npm 依赖
+      - name: Cache npm
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      # 5. 缓存 cargo 构建产物
+      - name: Cache cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # 6. 安装依赖
+      - name: Install dependencies
+        run: npm install
+
+      # 7. 构建前端
+      - name: Build frontend
+        run: npm run build
+
+      # 8. 构建 Tauri 应用
+      - name: Build Tauri app
+        run: npm run tauri build
+
+      # 9. 发布到 GitHub Release
+      - name: Publish Tauri Release
+        uses: tauri-apps/tauri-action@v0
+        with:
+          tagName: ${{ github.ref_name }}   # 使用推送的 tag 作为版本号
+          releaseName: "Release ${{ github.ref_name }}"
+          releaseBody: "Auto-generated Tauri release"
+          draft: false
+          prerelease: false
