@@ -36,22 +36,20 @@ pub async fn login(
     pool: State<'_, SqlitePool>,
     config: State<'_, Config>,
 ) -> Result<LoginResponse, String> {
-    log::info!("login attempt for user: {}", credentials.username);
+    log::info!("login attempt");
 
     // 查询用户
     let user = match find_user_by_username(pool.inner(), &credentials.username).await {
         Ok(Some(user)) => user,
         Ok(None) => {
             log::error!(
-                "login failed for user: {} - user not found",
-                credentials.username
+                "login failed - user not found"
             );
             return Err("未注册用户".to_string());
         }
         Err(e) => {
             log::error!(
-                "login failed for user: {} due to database error: {}",
-                credentials.username,
+                "login failed due to database error: {}",
                 e.to_string()
             );
             return Err(format!("Database error: {}", e));
@@ -61,8 +59,7 @@ pub async fn login(
     // 验证密码
     if !verify_password(&credentials.password, &user.password) {
         log::error!(
-            "login failed for user: {} due to incorrect password",
-            credentials.username
+            "login failed due to incorrect password"
         );
         return Err("用户名或密码错误".to_string());
     }
@@ -70,14 +67,13 @@ pub async fn login(
     // 生成 token
     let token = generate_token(&config, user.id.clone(), &user.username).map_err(|e| {
         log::error!(
-            "login failed for user: {} due to token generation error: {}",
-            credentials.username,
+            "login failed due to token generation error: {}",
             e.to_string()
         );
         format!("Failed to generate token: {}", e)
     })?;
 
-    log::info!("login successful for user: {}", credentials.username);
+    log::info!("login successful");
 
     Ok(LoginResponse {
         token,
