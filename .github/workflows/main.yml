@@ -9,6 +9,8 @@ on:
 jobs:
   build-tauri:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       # 1. 检出代码
       - name: Checkout repository
