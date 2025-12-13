@@ -97,8 +97,7 @@ pub async fn register(
 
     if existing.is_some() {
         log::warn!(
-            "register attempt with existing username: {}",
-            user_info.username
+            "register attempt with existing username"
         );
         return Err("用户名已存在".to_string());
     }
@@ -122,7 +121,7 @@ pub async fn register(
     let token = generate_token(&config, user.id.clone(), &user.username)
         .map_err(|e| format!("Failed to generate token: {}", e))?;
 
-    log::info!("User registered successfully: {}", user_info.username);
+    log::info!("User registered successfully");
 
     Ok(LoginResponse {
         token,
