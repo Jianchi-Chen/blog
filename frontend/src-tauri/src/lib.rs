@@ -6,7 +6,9 @@ pub mod config;
 pub mod db;
 pub mod models;
 pub mod repositories;
+pub mod tray;
 
+use crate::tray::load_system_tray;
 use config::Config;
 use db::{new_pool, run_migrations, run_seeds};
 use tauri::Manager;
@@ -21,6 +23,9 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
+            // 加载系统托盘
+            load_system_tray(app)?;
+
             // 加载配置
             let config = match Config::load(&app.handle()) {
                 Ok(cfg) => cfg,
@@ -42,12 +47,12 @@ pub fn run() {
             let pool = match tauri::async_runtime::block_on(async {
                 let pool = new_pool(&database_url).await?;
                 run_migrations(&pool).await?;
-                
+
                 // 运行种子数据（仅在开发模式或首次运行时）
                 if let Err(e) = run_seeds(&pool).await {
                     log::warn!("Failed to run seeds: {}", e);
                 }
-                
+
                 Ok::<_, Box<dyn std::error::Error>>(pool)
             }) {
                 Ok(p) => p,
