@@ -25,6 +25,7 @@ jobs:
       - name: Build & Release Tauri App
         uses: tauri-apps/tauri-action@v0
         with:
+          workingDirectory: frontend
           tagName: ${{ github.ref_name }}
           releaseName: "Release ${{ github.ref_name }}"
           releaseBody: |
