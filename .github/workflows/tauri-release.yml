@@ -60,6 +60,14 @@ jobs:
               working-directory: frontend
               run: npm install
 
+            - name: Update version in tauri.conf.json
+              shell: bash
+              run: |
+                  VERSION="${{ github.ref_name }}"
+                  VERSION="${VERSION#v}"  # 移除 v 前缀
+                  sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" frontend/src-tauri/tauri.conf.json
+                  cat frontend/src-tauri/tauri.conf.json | grep version
+
             - name: Build & Release Tauri App
               uses: tauri-apps/tauri-action@v0
               env:
