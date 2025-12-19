@@ -82,7 +82,6 @@ jobs:
                   prerelease: false
                   includeRelease: true
                   includeDebug: false
-                  args: ${{ matrix.platform == 'windows-latest' && '--bundles msi,nsis' || '' }}
 
             - name: Delete older releases
               if: matrix.platform == 'windows-latest'
