@@ -14,7 +14,15 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                platform: [windows-latest, macos-latest, ubuntu-latest]
+                include:
+                    - platform: windows-latest
+                      target: x86_64-pc-windows-msvc
+                    - platform: macos-latest
+                      target: x86_64-apple-darwin
+                    - platform: macos-latest
+                      target: aarch64-apple-darwin
+                    - platform: ubuntu-latest
+                      target: x86_64-unknown-linux-gnu
 
         runs-on: ${{ matrix.platform }}
 
@@ -30,13 +38,23 @@ jobs:
                   cache-dependency-path: frontend/package.json
 
             - name: Setup Rust
-              uses: dtolnay/rust-toolchain@stable
+              uses: actions-rust-lang/setup-rust-toolchain@v1
+              with:
+                  target: ${{ matrix.target }}
+
+            - name: Fix Ubuntu package sources
+              if: matrix.platform == 'ubuntu-latest'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y --no-install-recommends software-properties-common
+                  sudo add-apt-repository universe
+                  sudo apt-get update
 
             - name: Install dependencies (Ubuntu)
               if: matrix.platform == 'ubuntu-latest'
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+                  sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
 
             - name: Install frontend dependencies
               working-directory: frontend
@@ -51,9 +69,26 @@ jobs:
                   tagName: ${{ github.ref_name }}
                   releaseName: "Release ${{ github.ref_name }}"
                   releaseBody: |
-                      📝 Auto-generated release
+                      📝 Auto-generated release for ${{ matrix.platform }}
 
                       - Built with Tauri
                       - Frontend: Vue3 + Vite
                       - Backend: Rust + SQLite
+
+                      **Downloads:**
+                      - Windows: `.msi` installer and `.exe` portable
+                      - macOS: `.dmg` installer and `.app` bundle
+                      - Linux: `.deb`, `.AppImage`
                   prerelease: false
+                  includeRelease: true
+                  includeDebug: false
+                  args: ${{ matrix.platform == 'windows-latest' && '--bundles msi,nsis' || '' }}
+
+            - name: Delete older releases
+              if: matrix.platform == 'windows-latest'
+              uses: dev-drprasad/delete-older-releases@v0.3.2
+              with:
+                  keep_latest: 2
+                  delete_tags: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
