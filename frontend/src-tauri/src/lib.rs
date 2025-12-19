@@ -26,6 +26,11 @@ pub fn run() {
             // 加载系统托盘
             load_system_tray(app)?;
 
+            // 自动更新插件
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
+
             // 加载配置
             let config = match Config::load(&app.handle()) {
                 Ok(cfg) => cfg,

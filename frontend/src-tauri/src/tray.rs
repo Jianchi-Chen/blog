@@ -4,10 +4,17 @@ use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 use tauri::{App, AppHandle, Manager};
 
 pub fn load_system_tray(app_handle: &App) -> tauri::Result<()> {
+    let show_version = MenuItem::with_id(
+        app_handle,
+        "show_version",
+        &format!("版本: {}", env!("CARGO_PKG_VERSION")),
+        false,
+        None::<&str>,
+    )?;
     let quit = MenuItem::with_id(app_handle, "quit", "退出", true, None::<&str>)?;
     let hide = MenuItem::with_id(app_handle, "hide", "隐藏", true, None::<&str>)?;
     let show = MenuItem::with_id(app_handle, "show", "显示", true, None::<&str>)?;
-    let menu = Menu::with_items(app_handle, &[&hide, &show, &quit])?;
+    let menu = Menu::with_items(app_handle, &[&show_version, &hide, &show, &quit])?;
 
     TrayIconBuilder::new()
         // 把图标打进二进制，发布时不用带外部文件
