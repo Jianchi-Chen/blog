@@ -38,12 +38,6 @@
             "certificateThumbprint": null,
             "digestAlgorithm": "sha256",
             "timestampUrl": ""
-        },
-        "nsis": {
-            "displayLanguageSelector": false,
-            "languages": ["SimpChinese"],
-            "installerIcon": "icons/icon.ico",
-            "installMode": "perMachine"
         }
     }
 }
