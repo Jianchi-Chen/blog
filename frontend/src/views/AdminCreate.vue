@@ -8,7 +8,7 @@ import { onMounted, ref, type Ref } from 'vue';
 import { NForm, NFormItem, NInput, NButton, useMessage } from 'naive-ui';
 import axios from '@/api/client';
 import { useRouter } from 'vue-router';
-import ArticleForm from '@/components/ArticleForm.vue';
+import ArticleForm from '@/components/article/ArticleForm.vue';
 import { ArticleSchema, createEmptyArticle, type Article } from '@/types/article'
 
 

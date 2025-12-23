@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterView } from "vue-router";
-import NavBar from "./components/NavBar.vue";
+import NavBar from "./components/layout/NavBar.vue";
 import {
     darkTheme,
     NConfigProvider,
@@ -12,7 +12,7 @@ import {
 import type { GlobalTheme } from "naive-ui";
 import { useUserStore } from "./stores/user";
 import { onMounted, ref } from "vue";
-import Sider from "@/components/Sider.vue";
+import Sider from "@/components/layout/Sider.vue";
 import { useArticleStore } from "./stores/article";
 import { BackToTop } from "@vicons/carbon";
 import { check } from "@tauri-apps/plugin-updater";

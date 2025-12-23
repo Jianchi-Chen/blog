@@ -53,8 +53,8 @@
 
 <script setup lang="ts">
 import { fetchArticleById } from "@/api/article";
-import CommentSection from "@/components/CommentSection.vue";
-import MdPreview from "@/components/MdPreview.vue";
+import CommentSection from "@/components/article/CommentSection.vue";
+import MdPreview from "@/components/article/MdPreview.vue";
 import {
     ArticleSchema,
     createEmptyArticle,

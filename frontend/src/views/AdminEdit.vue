@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { fetchArticleById } from '@/api/article';
-import ArticleForm from '@/components/ArticleForm.vue';
+import ArticleForm from '@/components/article/ArticleForm.vue';
 import type { Article } from '@/types/article';
 import { ref } from 'vue';
 import { onMounted } from 'vue';
