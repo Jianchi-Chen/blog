@@ -7,9 +7,11 @@ use crate::models::ResponseMessage;
 use crate::repositories::user::{
     delete_user_by_id, edit_user_account, get_ident_by_id, list_users, AdminEditAccountPayload,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use tauri::State;
+use std::fs;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager, State};
 
 #[derive(Serialize)]
 pub struct ListUsersResponse {
@@ -125,4 +127,134 @@ pub async fn edit_account(
     Ok(ResponseMessage {
         message: "done".to_string(),
     })
+}
+
+#[derive(Deserialize)]
+pub struct SaveAvatarPayload {
+    token: String,
+    /// 源文件的绝对路径
+    source_path: String,
+}
+
+#[derive(Serialize)]
+pub struct SaveAvatarResponse {
+    /// 返回存储的文件路径（相对于 app_data_dir）
+    path: String,
+}
+
+/// 保存用户头像到本地
+#[tauri::command]
+pub async fn save_avatar(
+    app: AppHandle,
+    payload: SaveAvatarPayload,
+    pool: State<'_, SqlitePool>,
+    config: State<'_, Config>,
+) -> Result<SaveAvatarResponse, String> {
+    // 验证 token
+    let claims =
+        decode_token(&config, &payload.token).map_err(|e| format!("Invalid token: {}", e))?;
+
+    // 验证用户是否存在
+    get_ident_by_id(pool.inner(), &claims.user_id)
+        .await
+        .map_err(|e| format!("User not found: {}", e))?;
+
+    // 验证源文件是否存在
+    let source_path = PathBuf::from(&payload.source_path);
+    if !source_path.exists() {
+        return Err("Source file does not exist".to_string());
+    }
+
+    // 验证文件类型（通过扩展名）
+    let extension = source_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase())
+        .ok_or("File has no extension")?;
+
+    if extension != "png" && extension != "jpg" && extension != "jpeg" {
+        return Err("Only PNG and JPG files are allowed".to_string());
+    }
+
+    // 统一扩展名
+    let normalized_ext = if extension == "jpeg" {
+        "jpg"
+    } else {
+        &extension
+    };
+
+    // 获取 app_data_dir 并创建 icons 目录
+    let app_data = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
+    let icons_dir = app_data.join("icons");
+    fs::create_dir_all(&icons_dir)
+        .map_err(|e| format!("Failed to create icons directory: {}", e))?;
+
+    // 生成文件名：user_id + 时间戳
+    let timestamp = chrono::Utc::now().timestamp();
+    let filename = format!("avatar_{}_{}.{}", claims.user_id, timestamp, normalized_ext);
+    let dest_path = icons_dir.join(&filename);
+
+    // 复制文件（而不是移动，保留用户的原始文件）
+    fs::copy(&source_path, &dest_path).map_err(|e| format!("Failed to copy avatar: {}", e))?;
+
+    log::info!("Avatar saved: {:?}", dest_path);
+
+    // 清理旧头像（保留最新 10 个）
+    cleanup_old_avatars(&icons_dir, &claims.user_id, 10)
+        .map_err(|e| format!("Failed to cleanup old avatars: {}", e))?;
+
+    // 返回相对路径
+    let relative_path = format!("icons/{}", filename);
+
+    Ok(SaveAvatarResponse {
+        path: relative_path,
+    })
+}
+
+/// 清理用户的旧头像，只保留最新的 max_keep 个
+fn cleanup_old_avatars(icons_dir: &PathBuf, user_id: &str, max_keep: usize) -> Result<(), String> {
+    // 读取目录
+    let entries =
+        fs::read_dir(icons_dir).map_err(|e| format!("Failed to read icons directory: {}", e))?;
+
+    // 收集该用户的所有头像文件
+    let mut user_avatars: Vec<(PathBuf, std::time::SystemTime)> = Vec::new();
+    let prefix = format!("avatar_{}_", user_id);
+
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+        let path = entry.path();
+
+        if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+            if filename.starts_with(&prefix) {
+                // 获取文件修改时间
+                let metadata =
+                    fs::metadata(&path).map_err(|e| format!("Failed to read metadata: {}", e))?;
+                let modified = metadata
+                    .modified()
+                    .map_err(|e| format!("Failed to get modified time: {}", e))?;
+
+                user_avatars.push((path, modified));
+            }
+        }
+    }
+
+    // 如果文件数量超过限制，删除旧的
+    if user_avatars.len() > max_keep {
+        // 按修改时间排序（旧的在前）
+        user_avatars.sort_by_key(|(_, time)| *time);
+
+        // 删除最旧的文件
+        let to_delete = user_avatars.len() - max_keep;
+        for (path, _) in user_avatars.iter().take(to_delete) {
+            fs::remove_file(path).map_err(|e| format!("Failed to delete old avatar: {}", e))?;
+            log::info!("Deleted old avatar: {:?}", path);
+        }
+    }
+
+    Ok(())
 }

@@ -10,17 +10,18 @@
                                 :size="96"
                                 :src="avatar || undefined"
                                 :text="initials"
+                                @click="showAvatar"
+                                :lazy="true"
+                                object-fit="cover"
+                                style="cursor: pointer"
                             />
                             <div class="avatar-actions">
-                                <n-upload
-                                    :show-file-list="false"
-                                    accept="image/*"
-                                    :on-change="onAvatarChange"
+                                <n-button
+                                    size="tiny"
+                                    secondary
+                                    @click="selectAvatar"
+                                    >上传头像</n-button
                                 >
-                                    <n-button size="tiny" secondary
-                                        >上传头像</n-button
-                                    >
-                                </n-upload>
                                 <n-button
                                     size="tiny"
                                     tertiary
@@ -37,6 +38,7 @@
 
                     <n-divider />
 
+                    <!-- 签名 -->
                     <div class="signature-section">
                         <div class="section-header">
                             <div class="title">个性签名</div>
@@ -168,17 +170,34 @@
                 </n-card>
             </n-grid-item>
         </n-grid>
+
+        <!-- 头像大图查看模态框 -->
+        <n-modal
+            v-model:show="showAvatarModal"
+            preset="card"
+            title="用户头像"
+            :style="{ width: '80%', maxWidth: '800px' }"
+            :bordered="false"
+        >
+            <div class="avatar-preview">
+                <img :src="avatar" alt="用户头像" />
+            </div>
+        </n-modal>
     </div>
 </template>
 
 <script setup lang="ts">
 import { useUserStore } from "@/stores/user";
+import { uploadAvatar } from "@/api/account";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import { appDataDir, join } from "@tauri-apps/api/path";
+import { readFile } from "@tauri-apps/plugin-fs";
 import {
     NGrid,
     NGridItem,
     NCard,
     NAvatar,
-    NUpload,
     NButton,
     NInput,
     NDivider,
@@ -187,6 +206,8 @@ import {
     NListItem,
     NTag,
     NSpin,
+    useMessage,
+    NModal,
 } from "naive-ui";
 import { ref, reactive, computed, onMounted } from "vue";
 
@@ -199,7 +220,9 @@ interface FavoriteArticle {
     link?: string;
 }
 
+const message = useMessage();
 const userstore = useUserStore();
+const showAvatarModal = ref(false);
 // 用户基础信息（示例）
 const user = reactive({
     id: userstore.id || "未发现ID",
@@ -246,7 +269,7 @@ const sampleData: FavoriteArticle[] = [
     },
 ];
 
-function loadFavorites() {
+const loadFavorites = () => {
     loading.value = true;
     // 模拟接口延时
     setTimeout(() => {
@@ -260,7 +283,7 @@ function loadFavorites() {
         }
         loading.value = false;
     }, 600);
-}
+};
 
 // 搜索过滤
 const filter = ref("");
@@ -275,57 +298,135 @@ const filteredFavorites = computed(() => {
     );
 });
 
-function refreshList() {
+const refreshList = () => {
     loadFavorites();
-}
+};
 
-function openArticle(item: FavoriteArticle) {
+const openArticle = (item: FavoriteArticle) => {
     // 真实项目可以使用 router.push(...)
     window.open(item.link || "#", "_blank");
-}
+};
 
-function unfavorite(id: string) {
+const unfavorite = (id: string) => {
     favorites.value = favorites.value.filter((i) => i.id !== id);
     localStorage.setItem("user_favorites", JSON.stringify(favorites.value));
-}
+};
 
-// 头像上传处理：将图片转为 base64 并保存
-function onAvatarChange(file: any) {
-    const f = file.file;
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-        avatar.value = e.target.result;
-        localStorage.setItem("user_avatar", avatar.value);
-    };
-    reader.readAsDataURL(f);
-}
+// 头像选择和上传：使用 Tauri 文件选择器
+const selectAvatar = async () => {
+    try {
+        // 打开文件选择对话框
+        const selected = await open({
+            multiple: false,
+            filters: [
+                {
+                    name: "图片",
+                    extensions: ["png", "jpg", "jpeg"],
+                },
+            ],
+        });
 
-function removeAvatar() {
+        if (!selected) {
+            return; // 用户取消选择
+        }
+
+        // selected 是文件路径字符串
+        const filePath = selected as string;
+
+        // 调用后端保存头像
+        const result = await uploadAvatar(filePath);
+        console.log("result:", result);
+
+        // 构建完整的文件路径
+        const dataDir = await appDataDir();
+        const fullPath = await join(dataDir, result.path);
+        console.log("fullPath:", fullPath);
+
+        // 读取文件内容并转换为 base64
+        const fileBytes = await readFile(fullPath);
+        const base64 = btoa(
+            new Uint8Array(fileBytes).reduce(
+                (data, byte) => data + String.fromCharCode(byte),
+                ""
+            )
+        );
+
+        // 根据文件扩展名确定 MIME 类型
+        const ext = result.path.split(".").pop()?.toLowerCase();
+        const mimeType =
+            ext === "png"
+                ? "image/png"
+                : ext === "jpg" || ext === "jpeg"
+                ? "image/jpeg"
+                : "image/jpeg";
+
+        const base64Url = `data:${mimeType};base64,${base64}`;
+
+        // 保存到 localStorage 和更新显示
+        avatar.value = base64Url;
+        localStorage.setItem("user_avatar", base64Url);
+
+        message.success("头像上传成功！");
+    } catch (error: any) {
+        console.error("Upload avatar error:", error, {
+            duration: 50000,
+            closable: true,
+        });
+        message.error(error || "头像上传失败");
+    }
+};
+
+const removeAvatar = () => {
     avatar.value = "";
     localStorage.removeItem("user_avatar");
-}
+};
 
 // 签名编辑
-function saveSignature() {
+const saveSignature = () => {
     signature.value = draftSignature.value.trim();
     localStorage.setItem("user_signature", signature.value);
     editingSignature.value = false;
-}
+};
 
-function cancelSignature() {
+const cancelSignature = () => {
     draftSignature.value = signature.value;
     editingSignature.value = false;
-}
+};
 
-function formatDate(ts: number) {
+const formatDate = (ts: number) => {
     const d = new Date(ts);
     return (
         d.toLocaleDateString() +
         " " +
         d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
-}
+};
+
+// 查看头像大图
+const showAvatar = () => {
+    console.log("showAvator triggle out");
+
+    if (avatar.value) {
+        showAvatarModal.value = true;
+        const imgWindow = window.open("", "_blank", "noopener,noreferrer");
+        if (imgWindow) {
+            const doc = imgWindow.document;
+            const img = doc.createElement("img");
+            img.src = avatar.value;
+            img.style.maxWidth = "100%";
+            img.style.height = "auto";
+            if (doc.body) {
+                doc.body.style.margin = "0";
+                doc.body.appendChild(img);
+            }
+            img.style.maxWidth = "100%";
+            img.style.height = "auto";
+            doc.body.appendChild(img);
+        }
+    } else {
+        message.info("当前没有设置头像");
+    }
+};
 
 onMounted(() => {
     loadFavorites();
@@ -446,5 +547,18 @@ onMounted(() => {
     padding: 24px 0;
     display: flex;
     justify-content: center;
+}
+
+.avatar-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 0;
+}
+
+.avatar-preview img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
 }
 </style>

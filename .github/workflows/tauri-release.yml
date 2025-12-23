@@ -60,13 +60,29 @@ jobs:
               working-directory: frontend
               run: npm install
 
-            - name: Update version in tauri.conf.json
+            - name: Update version in all config files
               shell: bash
               run: |
                   VERSION="${{ github.ref_name }}"
                   VERSION="${VERSION#v}"  # 移除 v 前缀
+                  
+                  # 更新 tauri.conf.json
                   sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" frontend/src-tauri/tauri.conf.json
-                  cat frontend/src-tauri/tauri.conf.json | grep version
+                  
+                  # 更新 Cargo.toml
+                  sed -i.bak "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" frontend/src-tauri/Cargo.toml
+                  
+                  # 更新 package.json
+                  sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" frontend/package.json
+                  
+                  # 验证更新结果
+                  echo "=== Updated versions ==="
+                  echo "tauri.conf.json:"
+                  grep '"version":' frontend/src-tauri/tauri.conf.json
+                  echo "Cargo.toml:"
+                  grep '^version =' frontend/src-tauri/Cargo.toml
+                  echo "package.json:"
+                  grep '"version":' frontend/package.json | head -1
 
             - name: Build & Release Tauri App
               uses: tauri-apps/tauri-action@v0

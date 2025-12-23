@@ -17,6 +17,7 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(log::LevelFilter::Info)
@@ -105,6 +106,8 @@ pub fn run() {
             commands::like_comment,
             // 搜索
             commands::get_suggestions,
+            // 用户操作
+            commands::save_avatar,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

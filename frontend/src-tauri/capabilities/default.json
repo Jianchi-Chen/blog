@@ -9,6 +9,16 @@
         "dialog:default",
         "updater:default",
         "process:default",
-        "process:allow-restart"
+        "process:allow-restart",
+        "core:path:default",
+        {
+            "identifier": "fs:allow-read-file",
+            "allow": [{ "path": "$APPDATA/**" }, { "path": "$APPDATA/*" }]
+        },
+        {
+            "identifier": "fs:allow-read-dir",
+            "allow": [{ "path": "$APPDATA" }, { "path": "$APPDATA/**" }]
+        },
+        "fs:allow-exists"
     ]
 }
