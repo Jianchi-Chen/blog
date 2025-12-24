@@ -11,6 +11,7 @@ export const useUserStore = defineStore("user", {
         username: "", // 当前登录用户
         password: "",
         identity: "", // 当前用户身份
+        avatarUrl: "", // 用户头像 URL
     }),
 
     // 全局行为函数

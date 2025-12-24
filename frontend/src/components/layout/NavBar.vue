@@ -93,41 +93,53 @@ const menuOptions = computed(() => {
     ];
 
     if (isLoggedin.value) {
-        // 根据身份设定颜色
-        const username = userstore.username || "G";
-        const firstLetter = username.charAt(0).toUpperCase();
+        if (!localStorage.getItem("user_avatar")) {
+            // 根据身份设定颜色
+            const username = userstore.username || "G";
+            const firstLetter = username.charAt(0).toUpperCase();
 
-        let bg = "";
-        let color = "white";
+            let bg = "";
+            let color = "white";
 
-        if (userstore.isAdmin()) {
-            bg = "red"; // 管理员：红底黄字
-            color = "yellow";
-        } else if (userstore.identity == "user") {
-            bg = "green"; // 普通用户：绿底白字
-            color = "white";
-        } else {
-            bg = "yellow"; // 游客：黄底黑字
-            color = "black";
-        }
+            if (userstore.isAdmin()) {
+                bg = "red"; // 管理员：红底黄字
+                color = "yellow";
+            } else if (userstore.identity == "user") {
+                bg = "green"; // 普通用户：绿底白字
+                color = "white";
+            } else {
+                bg = "yellow"; // 游客：黄底黑字
+                color = "black";
+            }
 
-        items.push({
-            label: `当前用户: ${username}`,
-            key: "username",
-            icon: () =>
-                h(
-                    NAvatar,
-                    {
-                        style: {
-                            backgroundColor: bg,
-                            color: color,
-                            fontWeight: "bold",
+            items.push({
+                label: `当前用户: ${username}`,
+                key: "username",
+                icon: () =>
+                    h(
+                        NAvatar,
+                        {
+                            style: {
+                                backgroundColor: bg,
+                                color: color,
+                                fontWeight: "bold",
+                            },
+                            size: 28,
                         },
+                        { default: () => firstLetter }
+                    ),
+            });
+        } else {
+            items.push({
+                label: `当前用户: ${userstore.username}`,
+                key: "username",
+                icon: () =>
+                    h(NAvatar, {
                         size: 28,
-                    },
-                    { default: () => firstLetter }
-                ),
-        });
+                        src: localStorage.getItem("user_avatar") || "",
+                    }),
+            });
+        }
 
         if (userstore.isAdmin()) {
             items.push({

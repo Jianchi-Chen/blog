@@ -27,10 +27,10 @@ pub fn run() {
             // 加载系统托盘
             load_system_tray(app)?;
 
-            // 自动更新插件
-            #[cfg(desktop)]
-            app.handle()
-                .plugin(tauri_plugin_updater::Builder::new().build())?;
+            // ! 自动更新插件，待我更好的了解该api后再启用
+            // #[cfg(desktop)]
+            // app.handle()
+            //     .plugin(tauri_plugin_updater::Builder::new().build())?;
 
             // 加载配置
             let config = match Config::load(&app.handle()) {

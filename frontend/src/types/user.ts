@@ -6,6 +6,7 @@ export const UserSchema = z.object({
     password: z.string().min(1, "不能为空"),
     token: z.string().optional(),
     identity: z.string().default("vistor").optional(), // optional()需要放在最后
+    avatarUrl: z.string().optional(),
 });
 
 export type User = z.infer<typeof UserSchema>;

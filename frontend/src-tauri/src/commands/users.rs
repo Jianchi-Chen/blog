@@ -7,6 +7,7 @@ use crate::models::ResponseMessage;
 use crate::repositories::user::{
     delete_user_by_id, edit_user_account, get_ident_by_id, list_users, AdminEditAccountPayload,
 };
+use crate::tray::update_system_tray_icon;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::fs;
@@ -200,6 +201,12 @@ pub async fn save_avatar(
 
     // 复制文件（而不是移动，保留用户的原始文件）
     fs::copy(&source_path, &dest_path).map_err(|e| format!("Failed to copy avatar: {}", e))?;
+
+    if extension == "png" {
+        log::info!("将png文件更新为系统托盘: {:?}", dest_path);
+        // 将头像应用至系统托盘(仅限.png)
+        update_system_tray_icon(&app, dest_path.to_str().unwrap_or(""))?;
+    }
 
     log::info!("Avatar saved: {:?}", dest_path);
 
