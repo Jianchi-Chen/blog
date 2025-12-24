@@ -28,3 +28,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Tauri signing keys (private keys should never be committed)
+src-tauri/~/.tauri/*.key
