@@ -7,3 +7,8 @@
 app.db
 app.db-shm
 app.db-wal
+
+# Tauri signing keys (should be kept in secrets, not committed)
+.tauri/
+*.key
+*.key.pub
