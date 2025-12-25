@@ -43,5 +43,15 @@
             "digestAlgorithm": "sha256",
             "timestampUrl": ""
         }
+    },
+    "plugins": {
+        "updater": {
+            "endpoints": [
+                "https://github.com/Jianchi-Chen/blog/releases/latest/download/latest.json"
+            ],
+            "dialog": false,
+            "active": true,
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRCNTJFOEUxMEYzQkVCMjEKUldRaDZ6c1A0ZWhTUytZTGJvai96cWFjdUNjMzJGSzFyak1OK2t2VExzMDd0OW5zQTNMUkZNaUIK"
+        }
     }
 }

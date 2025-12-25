@@ -11,24 +11,28 @@ import {
 } from "naive-ui";
 import type { GlobalTheme } from "naive-ui";
 import { useUserStore } from "./stores/user";
-import { onMounted, ref } from "vue";
+import { defineComponent, onMounted, onUnmounted, ref } from "vue";
 import Sider from "@/components/layout/Sider.vue";
 import { useArticleStore } from "./stores/article";
 import { BackToTop } from "@vicons/carbon";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { ask } from "@tauri-apps/plugin-dialog";
+import { ask, message } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "@/stores/app";
+import { listen } from "@tauri-apps/api/event";
+import { useMessage } from "naive-ui";
+
+type UpdateStatusPayload = {
+    status: "checking" | "found" | "downloading" | "none" | "error" | "done";
+    progress?: number;
+    message?: string;
+};
 
 // 获取登录状态
 const userStore = useUserStore();
 const appStore = useAppStore();
 const articleStore = useArticleStore();
 onMounted(() => {
-    // 检查更新，暂时禁用
-    // if (appStore.isTauri) {
-    //     autoUpdate();
-    // }
     userStore.initFromStorage();
 });
 
@@ -39,46 +43,62 @@ const toggleTheme = () => {
     articleStore.osTheme = !articleStore.osTheme;
 };
 
-// 检查更新，暂时禁用
-// const autoUpdate = async () => {
-//     try {
-//         const update = await check(); // 访问 endpoint
-//         if (!update) return;
+// 更新事件监听组件（必须位于 n-message-provider 之内）
+const UpdateStatusListener = defineComponent({
+    name: "UpdateStatusListener",
+    setup() {
+        const naiveMessage = useMessage();
+        let unlisten: (() => void) | undefined;
 
-//         const yes = await ask(
-//             `发现新版本 ${update.version}\n${update.body}\n\n是否立即下载并重启?`,
-//             { title: "更新提示" }
-//         );
-//         if (!yes) return;
-//         await update.downloadAndInstall(() => {
-//             // 可选：在此处把进度 event 画到 UI，而不是输出到控制台
-//             console.log(event);
-//         });
-//         try {
-//             await relaunch(); // 重启即生效
-//         } catch (error) {
-//             console.error(
-//                 "Failed to relaunch application after update:",
-//                 error
-//             );
-//             try {
-//                 await ask(
-//                     "应用已更新，但重启失败。请手动重启应用以完成更新。",
-//                     { title: "重启失败" }
-//                 );
-//             } catch (dialogError) {
-//                 console.error(
-//                     "Failed to show restart failure dialog:",
-//                     dialogError
-//                 );
-//             }
-//         }
-//         await relaunch(); // 重启即生效
-//     } catch (error) {
-//         console.error("自动更新检查或安装失败:", error);
-//         await ask("检查更新时发生错误，请稍后重试。", { title: "更新失败" });
-//     }
-// };
+        onMounted(async () => {
+            try {
+                unlisten = await listen<UpdateStatusPayload>(
+                    "update_status",
+                    (event) => {
+                        const {
+                            status,
+                            progress,
+                            message: msg,
+                        } = event.payload;
+                        switch (status) {
+                            case "checking":
+                                naiveMessage.loading("正在检查更新");
+                                break;
+                            case "found":
+                                naiveMessage.info("检查到更新，正在下载...");
+                                break;
+                            case "downloading":
+                                if (typeof progress === "number") {
+                                    naiveMessage.info(`下载进度 ${progress}%`);
+                                }
+                                break;
+                            case "none":
+                                naiveMessage.success(msg || "未发现新版本");
+                                break;
+                            case "done":
+                                naiveMessage.success(
+                                    msg || "更新下载完成，正在安装"
+                                );
+                                break;
+                            case "error":
+                                naiveMessage.error(msg || "检查或下载更新失败");
+                                break;
+                        }
+                        console.log("update_status:", event.payload.status);
+                    }
+                );
+            } catch (e) {
+                console.error("监听更新事件失败", e);
+            }
+        });
+
+        onUnmounted(() => {
+            if (unlisten) unlisten();
+        });
+
+        return () => null;
+    },
+});
 </script>
 
 <template>
@@ -90,6 +110,7 @@ const toggleTheme = () => {
             <n-dialog-provider>
                 <!-- 所有页面组件都能访问 useMessage() 提供的 API -->
                 <n-message-provider>
+                    <UpdateStatusListener />
                     <n-layout position="absolute" class="h-screen h-full">
                         <n-layout-header bordered>
                             <NavBar @toggleTheme="toggleTheme" />
