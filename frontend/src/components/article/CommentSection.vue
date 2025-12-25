@@ -19,7 +19,7 @@
             <EntryCommentBar
                 ref="entryRef"
                 :articleId="articleId"
-                @success="postedComment"
+                @success="onPosted"
             />
         </div>
 
@@ -28,331 +28,88 @@
         </n-alert>
 
         <n-card v-for="comment in comments" :key="comment.comment_id">
-            <!-- 主评论 -->
-            <div v-if="comment.parent_id == null">
-                <n-p>{{ comment.content }}</n-p>
-                <n-flex inline :wrap="false" justify="start" align="center">
-                    <!-- 点赞评论 -->
-                    <n-button
-                        @click="
-                            likeComment(
-                                comment.user,
-                                comment.comment_id,
-                                'main'
-                            )
-                        "
-                        :bordered="false"
-                    >
-                        <div v-if="comment.liked_by_me === 0">
-                            <n-icon size="20"
-                                ><FavoriteBorderOutlined
-                            /></n-icon>
-                        </div>
-
-                        <div v-else>
-                            <n-icon size="20"><FavoriteOutlined /></n-icon>
-                        </div>
-
-                        {{ comment.like_count }}
-                    </n-button>
-
-                    <n-text type="success"
-                        >来自: {{ comment.user }} |
-                        {{ comment.created_at }}</n-text
-                    >
-                    <n-button
-                        @click="
-                            respondComment(comment.user, comment.comment_id)
-                        "
-                    >
-                        回复</n-button
-                    >
-                    <n-button
-                        v-if="userStore.identity == 'admin'"
-                        @click="handlerDeleteComment(comment.comment_id)"
-                    >
-                        删除</n-button
-                    >
-                </n-flex>
-            </div>
-
-            <!-- 子评论 -->
-            <div
-                v-for="child in comment.children"
-                :key="child.comment_id"
-                class="child-comment"
-            >
-                <n-p>{{ child.content }}</n-p>
-
-                <n-flex inline :wrap="false" justify="start" align="center">
-                    <n-button
-                        @click="
-                            likeComment(child.user, child.comment_id, 'child')
-                        "
-                        :bordered="false"
-                    >
-                        <div v-if="child.liked_by_me === 0">
-                            <n-icon size="20"
-                                ><FavoriteBorderOutlined
-                            /></n-icon>
-                        </div>
-                        <div v-else>
-                            <n-icon size="20"><FavoriteOutlined /></n-icon>
-                        </div>
-                        {{ child.like_count }}
-                    </n-button>
-
-                    <n-text type="success">
-                        来自: {{ child.user }} | {{ child.created_at }}
-                    </n-text>
-
-                    <n-button
-                        @click="respondComment(child.user, comment.comment_id)"
-                    >
-                        回复
-                    </n-button>
-
-                    <n-button
-                        v-if="userStore.identity == 'admin'"
-                        @click="handlerDeleteComment(child.comment_id)"
-                    >
-                        删除
-                    </n-button>
-                </n-flex>
-            </div>
+            <CommentItem
+                :comment="comment"
+                @like="(id, mode) => handleLike(id, mode)"
+                @reply="
+                    (username, parentId) => respondComment(username, parentId)
+                "
+                @delete="(id) => confirmDelete(id)"
+            />
         </n-card>
     </n-layout>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted, watchEffect } from "vue";
+import { useDialog, NLayout, NCard, NAlert } from "naive-ui";
 import { useUserStore } from "@/stores/user";
-import {
-    NLayout,
-    useDialog,
-    NFlex,
-    NButton,
-    NCard,
-    useMessage,
-    NAlert,
-    NH2,
-    NText,
-    NP,
-    c,
-} from "naive-ui";
-import { computed, onMounted, onUnmounted, ref, type Ref } from "vue";
-import { DeleteComment, fetchComments, updateCommentLike } from "@/api/comment";
-import { useRoute } from "vue-router";
 import { useArticleStore } from "@/stores/article";
 import EntryCommentBar from "./EntryCommentBar.vue";
-import { FavoriteBorderOutlined } from "@vicons/material";
-import { FavoriteOutlined } from "@vicons/material";
-import { useAppStore } from "@/stores/app";
-import { error } from "naive-ui/es/_utils/naive/warn";
+import CommentItem from "./CommentItem.vue";
+import { useComments } from "@/composables/useComments";
+
+const props = defineProps<{ articleId: string }>();
 
 const commentTitle = ref<HTMLElement | null>(null);
 const isFixed = ref(false);
-const message = useMessage();
 const userStore = useUserStore();
 const articleStore = useArticleStore();
-const route = useRoute();
-const articleId = route.params.id as string;
-const comments = ref<any[]>([]);
-const ifComment = ref(false);
 const dialog = useDialog();
 const entryRef = ref<any>(null);
-const likedComments = ref<string[]>([]);
-const isLiked = ref([]);
-const AppStore = useAppStore();
 
-// 初始化
-const loadComments = async () => {
-    try {
-        // 获取评论列表
-        const res = await fetchComments(articleId);
-        console.log("Fetched comments:", res);
+const {
+    comments,
+    ifComment,
+    loadComments,
+    postedComment,
+    handlerDeleteComment,
+    likeComment,
+} = useComments();
 
-        // 统一提取数据数组
-        let commentsData: any[];
-        if (AppStore.isTauri) {
-            // Tauri: { data: Array }
-            commentsData = res.data as any[];
-        } else {
-            // Web: AxiosResponse { data: { comments: Array } }
-            commentsData = (res as any).data.comments;
-        }
+// 初始化和 DOM observer
+onMounted(() => {
+    const observer = new IntersectionObserver(
+        ([entry]) => {
+            isFixed.value = !entry.isIntersecting;
+        },
+        { threshold: 0 }
+    );
 
-        comments.value = buildCommentsTree(commentsData);
-        ifComment.value = comments.value.length > 0;
-    } catch (error) {
-        console.error("Error fetching comments:", error);
-        message.error("加载评论失败，请稍后重试");
-    }
+    if (commentTitle.value) observer.observe(commentTitle.value);
+    onUnmounted(() => observer.disconnect());
+
+    if (props.articleId) loadComments(props.articleId);
+});
+
+const respondComment = (username: string, parent_id: string) => {
+    entryRef.value?.setComment?.(`@${username} `, parent_id);
 };
 
-// 构建评论树
-const buildCommentsTree = (commentsData: any) => {
-    const map = new Map();
-    const roots: any[] = [];
-
-    // 确保传入的是数组
-    const comments = Array.isArray(commentsData) ? commentsData : [];
-    console.log("comments:", comments);
-
-    // 为每个评论初始化 children 数组
-    comments.forEach((c) => {
-        map.set(c.comment_id, { ...c, children: [] });
-    });
-
-    // 构建树形结构
-    comments.forEach((c) => {
-        if (c.parent_id == null) {
-            // 一级评论（主评论）直接加入 roots
-            roots.push(map.get(c.comment_id));
-        } else {
-            // 所有非一级评论都作为二级评论加到对应父评论的 children 中
-            const parent = map.get(c.parent_id);
-            if (parent) {
-                parent.children.push(map.get(c.comment_id));
-            }
-        }
-    });
-
-    return roots;
+const onPosted = async () => {
+    if (props.articleId) await postedComment(props.articleId);
 };
 
-// 发布后刷新评论列表
-const postedComment = async () => {
-    await loadComments();
+const handleLike = (commentId: string, mode: string) => {
+    likeComment(commentId, mode, props.articleId);
 };
 
-// 删除评论
-const handlerDeleteComment = async (commentid: string) => {
+const confirmDelete = (commentId: string) => {
     dialog.warning({
         title: "确认删除?",
         content: "此操作将永久删除该评论，是否继续?",
         positiveText: "确定",
         negativeText: "取消",
         onPositiveClick: async () => {
-            await DeleteComment(commentid);
-            loadComments();
+            await handlerDeleteComment(commentId, props.articleId);
         },
     });
 };
 
-// 回复评论
-const respondComment = (username: string, parent_id: string) => {
-    entryRef.value?.setComment?.(`@${username} `, parent_id);
-};
-
-onMounted(() => {
-    // 创建一个观察器，用来监听某个 DOM 元素是否进入或离开视口
-    const observer = new IntersectionObserver(
-        ([entry]) => {
-            // entry.isIntersecting 表示元素是否在视口内
-            // 如果标题离开视口顶部，就把 isFixed 设置为 true
-            isFixed.value = !entry.isIntersecting;
-        },
-        { threshold: 0 } // 阈值：0 表示只要元素有任何部分进入/离开视口就触发
-    );
-
-    // 开始观察标题这个 DOM 元素
-    if (commentTitle.value) {
-        observer.observe(commentTitle.value);
-    }
-
-    // 组件卸载时断开观察器，避免内存泄漏
-    onUnmounted(() => observer.disconnect());
-
-    loadComments();
+watchEffect(() => {
+    if (!props.articleId) return;
+    loadComments(props.articleId);
 });
-
-// 点赞评论
-const likeComment = async (
-    username: string,
-    commentId: string,
-    mode: string
-) => {
-    const utoken = userStore.token;
-    if (!utoken) {
-        message.warning("请先登录后再点赞");
-        return;
-    }
-
-    // 先找到目标评论
-    let target: any = null;
-    if (mode === "main") {
-        target = comments.value.find((c) => c.comment_id === commentId);
-    } else {
-        target = comments.value
-            .flatMap((c) => c.children)
-            .find((child: any) => child.comment_id === commentId);
-    }
-
-    if (!target) {
-        message.error("找不到对应的评论");
-        return;
-    }
-
-    // 记录操作前的状态，用于失败时回滚
-    const previousLikedState = target.liked_by_me;
-    const previousLikeCount = target.like_count;
-
-    // 乐观更新 UI（先假设操作会成功）
-    if (previousLikedState === 0) {
-        // 当前未点赞，执行点赞
-        target.like_count += 1;
-        target.liked_by_me = 1;
-    } else {
-        // 当前已点赞，执行取消点赞
-        target.like_count -= 1;
-        target.liked_by_me = 0;
-    }
-
-    try {
-        const res = await updateCommentLike(commentId, utoken);
-
-        // 统一提取响应数据
-        let responseData: any;
-        if (AppStore.isTauri) {
-            // Tauri: { data: "liked" | "unliked" }
-            responseData = res.data;
-        } else {
-            // Web: { data: { like_or_unlike: "liked" | "unliked" } }
-            responseData = (res as any).data.like_or_unlike;
-        }
-
-        // 验证后端返回的结果与预期是否一致
-        const isLiked = responseData === "liked";
-        const expectedState = previousLikedState === 0 ? 1 : 0;
-
-        if ((isLiked ? 1 : 0) !== expectedState) {
-            // 后端返回的状态与预期不符，回滚
-            target.like_count = previousLikeCount;
-            target.liked_by_me = previousLikedState;
-            message.error("点赞状态异常，请刷新页面重试");
-            console.error("状态不一致:", {
-                isLiked,
-                expectedState,
-                previousLikedState,
-                responseData,
-            });
-            return;
-        }
-
-        // 显示成功消息
-        if (isLiked) {
-            message.success("点赞成功");
-        } else {
-            message.info("取消点赞");
-        }
-    } catch (error) {
-        // 请求失败，回滚 UI 状态
-        target.like_count = previousLikeCount;
-        target.liked_by_me = previousLikedState;
-        message.error("操作失败，请稍后重试");
-        console.error("点赞失败:", error);
-    }
-};
 </script>
 
 <style scoped>

@@ -46,7 +46,7 @@
 
         <n-card bordered>
             <!-- 保持 CommentSection 不变 -->
-            <CommentSection />
+            <CommentSection ref="CommentSectionRef" :articleId="articleId" />
         </n-card>
     </n-space>
 </template>
@@ -63,7 +63,6 @@ import {
 import { computed, onMounted, ref, watchEffect, type Ref } from "vue";
 import { useRoute } from "vue-router";
 import { NCard, NSpace, NAvatar, NTime, NTag, NDivider } from "naive-ui";
-import { ArrowUpCircle } from "@vicons/ionicons5";
 
 const route = useRoute();
 const articleId = computed(() => route.params.id as string);
@@ -82,6 +81,7 @@ const loadArticle = async () => {
             tags.value = res.data.tags;
             article.value = { ...res.data };
         }
+        console.log("加载文章:", article.value.id);
     } catch (err) {
         error.value = "无法加载文章详情";
     } finally {
