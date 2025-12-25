@@ -65,16 +65,22 @@ jobs:
               run: |
                   VERSION="${{ github.ref_name }}"
                   VERSION="${VERSION#v}"  # 移除 v 前缀
-                  
-                  # 更新 tauri.conf.json
-                  sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" frontend/src-tauri/tauri.conf.json
-                  
-                  # 更新 Cargo.toml
-                  sed -i.bak "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" frontend/src-tauri/Cargo.toml
-                  
-                  # 更新 package.json
-                  sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" frontend/package.json
-                  
+
+                  echo "Updating to version: $VERSION"
+
+                  # macOS/Linux 使用 sed -i ''，Windows Git Bash 使用 sed -i
+                  if [[ "$OSTYPE" == "darwin"* ]]; then
+                      # macOS
+                      sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" frontend/src-tauri/tauri.conf.json
+                      sed -i '' "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" frontend/src-tauri/Cargo.toml
+                      sed -i '' "1,/\"version\": \"[^\"]*\"/ s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" frontend/package.json
+                  else
+                      # Linux/Windows
+                      sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" frontend/src-tauri/tauri.conf.json
+                      sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" frontend/src-tauri/Cargo.toml
+                      sed -i "1,/\"version\": \"[^\"]*\"/ s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" frontend/package.json
+                  fi
+
                   # 验证更新结果
                   echo "=== Updated versions ==="
                   echo "tauri.conf.json:"
@@ -105,9 +111,14 @@ jobs:
                       - Windows: `.msi` installer and `.exe` portable
                       - macOS: `.dmg` installer and `.app` bundle
                       - Linux: `.deb`, `.AppImage`
+
+                      **自动更新支持**: 应用内检查更新功能已启用
                   prerelease: false
                   includeRelease: true
                   includeDebug: false
+                  # 关键：确保生成 updater artifacts
+                  includeUpdaterJson: true
+                  updaterJsonKeepUniversal: false
 
             - name: Delete older releases
               if: matrix.platform == 'windows-latest'
