@@ -13,10 +13,11 @@ The private key used for signing Tauri updater artifacts. This should be the bas
 **To generate a new key pair:**
 ```bash
 # Using Tauri CLI (recommended)
-npm run tauri signer generate -- -w ~/.tauri/myapp.key
+npm run tauri signer generate -- --write-keys ~/.tauri/myapp.key
 
-# Or manually with openssl
-openssl genpkey -algorithm Ed25519 -out ~/.tauri/myapp.key
+# The above will create:
+# - ~/.tauri/myapp.key (private key)
+# - ~/.tauri/myapp.key.pub (public key)
 ```
 
 **To add to GitHub secrets:**
@@ -69,7 +70,8 @@ The workflow is configured in `.github/workflows/tauri-release.yml` and:
 ## Important Notes
 
 - **DO NOT commit signing keys** to the repository
-- Keys are stored in `~/.tauri/` and `.tauri/` directories (excluded by .gitignore)
+- Keys should be stored outside the project directory (e.g., `~/.tauri/`)
+- Local `.tauri/` directory and `*.key` files are excluded by .gitignore
 - If secrets are not configured, the build will still work but without signed updater artifacts
 - The workflow uses `createUpdaterArtifacts: true` in tauri.conf.json
 
