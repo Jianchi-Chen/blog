@@ -37,6 +37,17 @@ jobs:
                   cache: "npm"
                   cache-dependency-path: frontend/package.json
 
+            - name: Install jq (JSON processor)
+              shell: bash
+              run: |
+                  if [[ "${{ matrix.platform }}" == "ubuntu-latest" ]]; then
+                      sudo apt-get install -y jq
+                  elif [[ "${{ matrix.platform }}" == "macos-latest" ]]; then
+                      brew install jq
+                  elif [[ "${{ matrix.platform }}" == "windows-latest" ]]; then
+                      choco install jq -y
+                  fi
+
             - name: Setup Rust
               uses: actions-rust-lang/setup-rust-toolchain@v1
               with:
@@ -90,6 +101,57 @@ jobs:
                   echo "package.json:"
                   grep '"version":' frontend/package.json | head -1
 
+            - name: Configure bundle targets
+              shell: bash
+              working-directory: frontend/src-tauri
+              run: |
+                  # 读取当前配置
+                  CONFIG_FILE="tauri.conf.json"
+
+                  # 根据平台设置不同的 bundle targets
+                  if [[ "${{ matrix.platform }}" == "ubuntu-latest" ]]; then
+                      # Linux: deb 和 rpm，移除 AppImage
+                      echo "Configuring Linux bundle targets: deb, rpm"
+                      # 使用 jq 或 sed 修改配置（这里用简单的方式，直接添加 targets）
+                      cat > bundle_config.json << 'EOF'
+                  {
+                      "bundle": {
+                          "targets": ["deb", "rpm"]
+                      }
+                  }
+                  EOF
+                  elif [[ "${{ matrix.platform }}" == "windows-latest" ]]; then
+                      # Windows: 只保留 msi，移除 nsis (setup.exe)
+                      echo "Configuring Windows bundle targets: msi only"
+                      cat > bundle_config.json << 'EOF'
+                  {
+                      "bundle": {
+                          "targets": ["msi"]
+                      }
+                  }
+                  EOF
+                  elif [[ "${{ matrix.platform }}" == "macos-latest" ]]; then
+                      # macOS: 保留 dmg 和 app
+                      echo "Configuring macOS bundle targets: dmg, app"
+                      cat > bundle_config.json << 'EOF'
+                  {
+                      "bundle": {
+                          "targets": ["dmg", "app"]
+                      }
+                  }
+                  EOF
+                  fi
+
+                  # 合并配置到 tauri.conf.json
+                  if command -v jq &> /dev/null; then
+                      jq -s '.[0] * .[1]' "$CONFIG_FILE" bundle_config.json > tmp.json && mv tmp.json "$CONFIG_FILE"
+                      rm bundle_config.json
+                      echo "=== Updated bundle targets ==="
+                      jq '.bundle.targets' "$CONFIG_FILE"
+                  else
+                      echo "jq not found, skipping bundle target configuration"
+                  fi
+
             - name: Build & Release Tauri App
               uses: tauri-apps/tauri-action@v0
               env:
@@ -116,9 +178,10 @@ jobs:
                   prerelease: false
                   includeRelease: true
                   includeDebug: false
-                  # 关键：确保生成 updater artifacts
+                  # 关键：确保生成 updater artifacts 和 latest.json
                   includeUpdaterJson: true
-                  updaterJsonKeepUniversal: false
+                  updaterJsonKeepUniversal: true
+                  updaterJsonPreferNsis: false
 
             - name: Delete older releases
               if: matrix.platform == 'windows-latest'

@@ -113,15 +113,17 @@ fn hide_main_window(app: &AppHandle) {
 
 /// 调用检查更新功能, 发送事件到前端
 async fn check_version(app: &AppHandle) -> Result<(), String> {
-    let updater = app
-        .updater()
-        .map_err(|e| format!("获取更新器失败: {}", e))?;
+    log::info!("开始检查更新...");
+    let updater = app.updater().map_err(|e| {
+        log::warn!("获取更新器失败: {}", e);
+        format!("获取更新器失败: {}", e)
+    })?;
 
     // 检查更新
-    let update = updater
-        .check()
-        .await
-        .map_err(|e| format!("检查更新失败: {}", e))?;
+    let update = updater.check().await.map_err(|e| {
+        log::warn!("检查更新失败: {}", e);
+        format!("检查更新失败: {}", e)
+    })?;
 
     let Some(update) = update else {
         emit_status(app, "none", None, Some("未发现新版本".into()));
@@ -171,6 +173,7 @@ async fn check_version(app: &AppHandle) -> Result<(), String> {
         }
     }
 
+    log::info!("更新过程完成");
     Ok(())
 }
 
